@@ -1,0 +1,72 @@
+﻿<wwl:CheckedWindow x:Class="MusicPlayer.TrackRenameWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MusicPlayer"
+        xmlns:wwl="clr-namespace:WpfWindowsLib;assembly=WpfWindowsLib" 
+        mc:Ignorable="d"
+        Title="TrackRenameWindow" SizeToContent="WidthAndHeight">
+    <Grid Background="LightBlue">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="auto"/>
+      <RowDefinition Height="auto"/>
+      <RowDefinition Height="auto"/>
+      <RowDefinition Height="auto"/>
+      <RowDefinition Height="auto"/>
+      <RowDefinition Height="auto"/>
+      <RowDefinition Height="auto"/>
+      <RowDefinition Height="auto"/>
+      <RowDefinition Height="auto"/>
+      <RowDefinition Height="auto"/>
+      <RowDefinition Height="auto"/>
+      <RowDefinition Height="auto"/>
+    </Grid.RowDefinitions>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="auto"/>
+      <ColumnDefinition Width="400"/>
+      <ColumnDefinition Width="400"/>
+    </Grid.ColumnDefinitions>
+
+    <Rectangle Grid.Row="0" Grid.Column="0" Grid.RowSpan="10" Fill="LightGray"/>
+      
+    <Label Grid.Row="0" Grid.Column="0" Content="File Name" Target="{Binding ElementName=FileNameTextBoxNew}"/>
+    <TextBox  Grid.Row="0" Grid.Column="1" x:Name="FileNameTextBox" IsReadOnly="True"/>
+
+    <Label Grid.Row="1" Grid.Column="0" Content="Title" Target="{Binding ElementName=TitleTextBoxNew}"/>
+    <TextBox  Grid.Row="1" Grid.Column="1" x:Name="TitleTextBox" IsReadOnly="True"/>
+    <wwl:CheckedTextBox  Grid.Row="1" Grid.Column="2" x:Name="TitleTextBoxNew"/>
+
+    <Label Grid.Row="2" Grid.Column="0" Content="Album" Target="{Binding ElementName=AlbumTextBoxNew}"/>
+    <TextBox  Grid.Row="2" Grid.Column="1" x:Name="AlbumTextBox" IsReadOnly="True"/>
+    <wwl:CheckedTextBox  Grid.Row="2" Grid.Column="2" x:Name="AlbumTextBoxNew"/>
+
+    <Label Grid.Row="3" Grid.Column="0" Content="AlbumTrack" Target="{Binding ElementName=AlbumTrackTextBoxNew}"/>
+    <TextBox  Grid.Row="3" Grid.Column="1" x:Name="AlbumTrackTextBox" IsReadOnly="True"/>
+    <wwl:IntTextBox  Grid.Row="3" Grid.Column="2" x:Name="AlbumTrackTextBoxNew"/>
+
+    <Label Grid.Row="4" Grid.Column="0" Content="Artists" Target="{Binding ElementName=ArtistsTextBoxNew}"/>
+    <TextBox  Grid.Row="4" Grid.Column="1" x:Name="ArtistsTextBox" IsReadOnly="True"/>
+    <wwl:CheckedTextBox  Grid.Row="4" Grid.Column="2" x:Name="ArtistsTextBoxNew"/>
+
+    <Label Grid.Row="5" Grid.Column="0" Content="Composers" Target="{Binding ElementName=ComposersTextBoxNew}"/>
+    <TextBox  Grid.Row="5" Grid.Column="1" x:Name="ComposersTextBox" IsReadOnly="True"/>
+    <wwl:CheckedTextBox  Grid.Row="5" Grid.Column="2" x:Name="ComposersTextBoxNew"/>
+
+    <Label Grid.Row="6" Grid.Column="0" Content="Genres" Target="{Binding ElementName=GenresTextBoxNew}"/>
+    <TextBox  Grid.Row="6" Grid.Column="1" x:Name="GenresTextBox" IsReadOnly="True"/>
+    <wwl:CheckedTextBox  Grid.Row="6" Grid.Column="2" x:Name="GenresTextBoxNew"/>
+
+    <Label Grid.Row="7" Grid.Column="0" Content="Publisher" Target="{Binding ElementName=PublisherTextBoxNew}"/>
+    <TextBox  Grid.Row="7" Grid.Column="1" x:Name="PublisherTextBox" IsReadOnly="True"/>
+    <wwl:CheckedTextBox  Grid.Row="7" Grid.Column="2" x:Name="PublisherTextBoxNew"/>
+
+    <Label Grid.Row="8" Grid.Column="0" Content="Year" Target="{Binding ElementName=YearTextBoxNew}"/>
+    <TextBox  Grid.Row="8" Grid.Column="1" x:Name="YearTextBox" IsReadOnly="True"/>
+    <wwl:IntTextBox  Grid.Row="8" Grid.Column="2" x:Name="YearTextBoxNew"/>
+
+    <Rectangle Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="3" Fill="Gainsboro"/>
+    <Button Grid.Row="9" Grid.Column="1" Name="GoogleButton" Content="_Google" HorizontalAlignment="Right"/>
+    <Button Grid.Row="9" Grid.Column="2" Name="SaveButton" Content="_Save" HorizontalAlignment="Right"/>
+  </Grid>
+</wwl:CheckedWindow>
