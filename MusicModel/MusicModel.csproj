@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\Storage\StorageClassGenerator\StorageClassGenerator.csproj" />
+  </ItemGroup>
+
 </Project>
