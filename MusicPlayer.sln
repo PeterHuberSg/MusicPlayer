@@ -18,11 +18,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BaseLib", "..\BaseLib\BaseLib\BaseLib.csproj", "{EFB7D18F-95DD-4F87-9C9A-74E93CA8FBDB}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Storage", "..\Storage\Storage\Storage.csproj", "{8B86830E-6DA7-4182-BCEC-18B7B88EAC4D}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StorageClassGenerator", "..\Storage\StorageClassGenerator\StorageClassGenerator.csproj", "{9EDEE060-D297-4574-9CB7-1C13C3757A76}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WpfWindowsLib", "..\WpfWindowsLib\WpfWindowsLib\WpfWindowsLib.csproj", "{19402289-E837-43AC-827D-2B186183433F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StorageLib", "..\StorageLib\StorageLib\StorageLib.csproj", "{489C3EA5-0F3E-4634-895A-4BBE86509196}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StorageClassGenerator", "..\StorageLib\StorageClassGenerator\StorageClassGenerator.csproj", "{4C4A6116-E24C-4E64-906E-705B89215654}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -50,18 +50,18 @@ Global
 		{EFB7D18F-95DD-4F87-9C9A-74E93CA8FBDB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EFB7D18F-95DD-4F87-9C9A-74E93CA8FBDB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EFB7D18F-95DD-4F87-9C9A-74E93CA8FBDB}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8B86830E-6DA7-4182-BCEC-18B7B88EAC4D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8B86830E-6DA7-4182-BCEC-18B7B88EAC4D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8B86830E-6DA7-4182-BCEC-18B7B88EAC4D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8B86830E-6DA7-4182-BCEC-18B7B88EAC4D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9EDEE060-D297-4574-9CB7-1C13C3757A76}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9EDEE060-D297-4574-9CB7-1C13C3757A76}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9EDEE060-D297-4574-9CB7-1C13C3757A76}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9EDEE060-D297-4574-9CB7-1C13C3757A76}.Release|Any CPU.Build.0 = Release|Any CPU
 		{19402289-E837-43AC-827D-2B186183433F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{19402289-E837-43AC-827D-2B186183433F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{19402289-E837-43AC-827D-2B186183433F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{19402289-E837-43AC-827D-2B186183433F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{489C3EA5-0F3E-4634-895A-4BBE86509196}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{489C3EA5-0F3E-4634-895A-4BBE86509196}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{489C3EA5-0F3E-4634-895A-4BBE86509196}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{489C3EA5-0F3E-4634-895A-4BBE86509196}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4C4A6116-E24C-4E64-906E-705B89215654}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4C4A6116-E24C-4E64-906E-705B89215654}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4C4A6116-E24C-4E64-906E-705B89215654}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4C4A6116-E24C-4E64-906E-705B89215654}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

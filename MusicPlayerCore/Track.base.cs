@@ -10,7 +10,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using Storage;
+using StorageLib;
 
 
 namespace MusicPlayer  {
@@ -36,6 +36,9 @@ namespace MusicPlayer  {
     public string FullFileName { get; }
 
 
+    public Location Location { get; }
+
+
     public string? Title { get; private set; }
 
 
@@ -57,13 +60,13 @@ namespace MusicPlayer  {
     public string? Composers { get; private set; }
 
 
-    public string? Genres { get; private set; }
-
-
     public string? Publisher { get; private set; }
 
 
     public int? Year { get; private set; }
+
+
+    public string? Genres { get; private set; }
 
 
     public int? Weight { get; private set; }
@@ -81,6 +84,10 @@ namespace MusicPlayer  {
     public string TitleArtists { get; private set; }
 
 
+    public IReadOnlyList<PlaylistTrack> Playlists => playlists;
+    readonly List<PlaylistTrack> playlists;
+
+
     /// <summary>
     /// Headers written to first line in CSV file
     /// </summary>
@@ -88,15 +95,16 @@ namespace MusicPlayer  {
       "Key", 
       "FileName", 
       "FullFileName", 
+      "Location", 
       "Title", 
       "Duration", 
       "Album", 
       "AlbumTrack", 
       "Artists", 
       "Composers", 
-      "Genres", 
       "Publisher", 
       "Year", 
+      "Genres", 
       "Weight", 
       "Volume", 
       "SkipStart", 
@@ -106,9 +114,13 @@ namespace MusicPlayer  {
 
 
     /// <summary>
-    /// None existing Track
+    /// None existing Track, used as a temporary place holder when reading a CSV file
+    /// which was not compacted. It might create first a later deleted item linking to a 
+    /// deleted parent. In this case, the parent property gets set to NoTrack. Once the CSV
+    /// file is completely read, that child will actually be deleted (released) and Verify()
+    /// ensures that there are no stored children with links to NoTrack.
     /// </summary>
-    internal static Track NoTrack = new Track("NoFileName", "NoFullFileName", null, null, null, null, null, null, null, null, null, null, null, null, null, "NoTitleArtists", isStoring: false);
+    internal static Track NoTrack = new Track("NoFileName", "NoFullFileName", Location.NoLocation, null, null, null, null, null, null, null, null, null, null, null, null, null, "NoTitleArtists", isStoring: false);
     #endregion
 
 
@@ -131,15 +143,16 @@ namespace MusicPlayer  {
     public Track(
       string fileName, 
       string fullFileName, 
+      Location location, 
       string? title, 
       TimeSpan? duration, 
       string? album, 
       int? albumTrack, 
       string? artists, 
       string? composers, 
-      string? genres, 
       string? publisher, 
       int? year, 
+      string? genres, 
       int? weight, 
       int? volume, 
       int? skipStart, 
@@ -150,23 +163,26 @@ namespace MusicPlayer  {
       Key = StorageExtensions.NoKey;
       FileName = fileName;
       FullFileName = fullFileName;
+      Location = location;
       Title = title;
       Duration = duration.Round(Rounding.Seconds);
       Album = album;
       AlbumTrack = albumTrack;
       Artists = artists;
       Composers = composers;
-      Genres = genres;
       Publisher = publisher;
       Year = year;
+      Genres = genres;
       Weight = weight;
       Volume = volume;
       SkipStart = skipStart;
       SkipEnd = skipEnd;
       TitleArtists = titleArtists;
+      playlists = new List<PlaylistTrack>();
+      Location.AddToTracks(this);
       onConstruct();
       if (DC.Data.IsTransaction) {
-        DC.Data.AddTransaction(new TransactionItem(0,TransactionActivityEnum.New, Key, this));
+        DC.Data.AddTransaction(new TransactionItem(1,TransactionActivityEnum.New, Key, this));
       }
 
       if (isStoring) {
@@ -185,15 +201,16 @@ namespace MusicPlayer  {
       Key = StorageExtensions.NoKey;
       FileName = original.FileName;
       FullFileName = original.FullFileName;
+      Location = original.Location;
       Title = original.Title;
       Duration = original.Duration;
       Album = original.Album;
       AlbumTrack = original.AlbumTrack;
       Artists = original.Artists;
       Composers = original.Composers;
-      Genres = original.Genres;
       Publisher = original.Publisher;
       Year = original.Year;
+      Genres = original.Genres;
       Weight = original.Weight;
       Volume = original.Volume;
       SkipStart = original.SkipStart;
@@ -211,21 +228,27 @@ namespace MusicPlayer  {
       Key = key;
       FileName = csvReader.ReadString();
       FullFileName = csvReader.ReadString();
+      var locationKey = csvReader.ReadInt();
+      Location = DC.Data._Locations.GetItem(locationKey)?? Location.NoLocation;
       Title = csvReader.ReadStringNull();
       Duration = csvReader.ReadTimeNull();
       Album = csvReader.ReadStringNull();
       AlbumTrack = csvReader.ReadIntNull();
       Artists = csvReader.ReadStringNull();
       Composers = csvReader.ReadStringNull();
-      Genres = csvReader.ReadStringNull();
       Publisher = csvReader.ReadStringNull();
       Year = csvReader.ReadIntNull();
+      Genres = csvReader.ReadStringNull();
       Weight = csvReader.ReadIntNull();
       Volume = csvReader.ReadIntNull();
       SkipStart = csvReader.ReadIntNull();
       SkipEnd = csvReader.ReadIntNull();
       TitleArtists = csvReader.ReadString();
       DC.Data._TracksByTitleArtists.Add(TitleArtists, this);
+      playlists = new List<PlaylistTrack>();
+      if (Location!=Location.NoLocation) {
+        Location.AddToTracks(this);
+      }
       onCsvConstruct();
     }
     partial void onCsvConstruct();
@@ -236,6 +259,15 @@ namespace MusicPlayer  {
     /// </summary>
     internal static Track Create(int key, CsvReader csvReader) {
       return new Track(key, csvReader);
+    }
+
+
+    /// <summary>
+    /// Verify that track.Location exists.
+    /// </summary>
+    internal static bool Verify(Track track) {
+      if (track.Location==Location.NoLocation) return false;
+      return true;
     }
     #endregion
 
@@ -256,8 +288,11 @@ namespace MusicPlayer  {
       onStoring(ref isCancelled);
       if (isCancelled) return;
 
+      if (Location.Key<0) {
+        throw new Exception($"Cannot store child Track '{this}'.Location to Location '{Location}' because parent is not stored yet.");
+      }
       DC.Data._TracksByTitleArtists.Add(TitleArtists, this);
-      DC.Data.Tracks.Add(this);
+      DC.Data._Tracks.Add(this);
       onStored();
     }
     partial void onStoring(ref bool isCancelled);
@@ -277,15 +312,18 @@ namespace MusicPlayer  {
       track.onCsvWrite();
       csvWriter.Write(track.FileName);
       csvWriter.Write(track.FullFileName);
+      if (track.Location.Key<0) throw new Exception($"Cannot write track '{track}' to CSV File, because Location is not stored in DC.Data.Locations.");
+
+      csvWriter.Write(track.Location.Key.ToString());
       csvWriter.Write(track.Title);
       csvWriter.WriteTime(track.Duration);
       csvWriter.Write(track.Album);
       csvWriter.Write(track.AlbumTrack);
       csvWriter.Write(track.Artists);
       csvWriter.Write(track.Composers);
-      csvWriter.Write(track.Genres);
       csvWriter.Write(track.Publisher);
       csvWriter.Write(track.Year);
+      csvWriter.Write(track.Genres);
       csvWriter.Write(track.Weight);
       csvWriter.Write(track.Volume);
       csvWriter.Write(track.SkipStart);
@@ -304,9 +342,9 @@ namespace MusicPlayer  {
       int? albumTrack, 
       string? artists, 
       string? composers, 
-      string? genres, 
       string? publisher, 
       int? year, 
+      string? genres, 
       int? weight, 
       int? volume, 
       int? skipStart, 
@@ -321,9 +359,9 @@ namespace MusicPlayer  {
         albumTrack, 
         artists, 
         composers, 
-        genres, 
         publisher, 
         year, 
+        genres, 
         weight, 
         volume, 
         skipStart, 
@@ -332,6 +370,8 @@ namespace MusicPlayer  {
         ref isCancelled);
       if (isCancelled) return;
 
+
+      //update properties and detect if any value has changed
       var isChangeDetected = false;
       if (Title!=title) {
         Title = title;
@@ -353,16 +393,16 @@ namespace MusicPlayer  {
         Composers = composers;
         isChangeDetected = true;
       }
-      if (Genres!=genres) {
-        Genres = genres;
-        isChangeDetected = true;
-      }
       if (Publisher!=publisher) {
         Publisher = publisher;
         isChangeDetected = true;
       }
       if (Year!=year) {
         Year = year;
+        isChangeDetected = true;
+      }
+      if (Genres!=genres) {
+        Genres = genres;
         isChangeDetected = true;
       }
       if (Weight!=weight) {
@@ -394,9 +434,9 @@ namespace MusicPlayer  {
       if (isChangeDetected) {
         onUpdated(clone);
         if (Key>=0) {
-          DC.Data.Tracks.ItemHasChanged(clone, this);
+          DC.Data._Tracks.ItemHasChanged(clone, this);
         } else if (DC.Data.IsTransaction) {
-          DC.Data.AddTransaction(new TransactionItem(0, TransactionActivityEnum.Update, Key, this, oldItem: clone));
+          DC.Data.AddTransaction(new TransactionItem(1, TransactionActivityEnum.Update, Key, this, oldItem: clone));
         }
         HasChanged?.Invoke(clone, this);
       }
@@ -407,9 +447,9 @@ namespace MusicPlayer  {
       int? albumTrack, 
       string? artists, 
       string? composers, 
-      string? genres, 
       string? publisher, 
       int? year, 
+      string? genres, 
       int? weight, 
       int? volume, 
       int? skipStart, 
@@ -435,6 +475,13 @@ namespace MusicPlayer  {
           $"readonly, fullFileName '{fullFileName}' read from the CSV file should be the same." + Environment.NewLine + 
           track.ToString());
       }
+        var location = DC.Data._Locations.GetItem(csvReader.ReadInt())??
+          Location.NoLocation;
+      if (track.Location!=location) {
+        throw new Exception($"Track.Update(): Property Location '{track.Location}' is " +
+          $"readonly, location '{location}' read from the CSV file should be the same." + Environment.NewLine + 
+          track.ToString());
+      }
       track.Title = csvReader.ReadStringNull();
       var duration = csvReader.ReadTimeNull();
       if (track.Duration!=duration) {
@@ -446,9 +493,9 @@ namespace MusicPlayer  {
       track.AlbumTrack = csvReader.ReadIntNull();
       track.Artists = csvReader.ReadStringNull();
       track.Composers = csvReader.ReadStringNull();
-      track.Genres = csvReader.ReadStringNull();
       track.Publisher = csvReader.ReadStringNull();
       track.Year = csvReader.ReadIntNull();
+      track.Genres = csvReader.ReadStringNull();
       track.Weight = csvReader.ReadIntNull();
       track.Volume = csvReader.ReadIntNull();
       track.SkipStart = csvReader.ReadIntNull();
@@ -462,24 +509,62 @@ namespace MusicPlayer  {
 
 
     /// <summary>
+    /// Add playlistTrack to Playlists.
+    /// </summary>
+    internal void AddToPlaylists(PlaylistTrack playlistTrack) {
+#if DEBUG
+      if (playlistTrack==PlaylistTrack.NoPlaylistTrack) throw new Exception();
+      if ((playlistTrack.Key>=0)&&(Key<0)) throw new Exception();
+      if (playlists.Contains(playlistTrack)) throw new Exception();
+#endif
+      playlists.Add(playlistTrack);
+      onAddedToPlaylists(playlistTrack);
+    }
+    partial void onAddedToPlaylists(PlaylistTrack playlistTrack);
+
+
+    /// <summary>
+    /// Removes playlistTrack from Track.
+    /// </summary>
+    internal void RemoveFromPlaylists(PlaylistTrack playlistTrack) {
+#if DEBUG
+      if (!playlists.Remove(playlistTrack)) throw new Exception();
+#else
+        playlists.Remove(playlistTrack);
+#endif
+      onRemovedFromPlaylists(playlistTrack);
+    }
+    partial void onRemovedFromPlaylists(PlaylistTrack playlistTrack);
+
+
+    /// <summary>
     /// Removes Track from DC.Data.Tracks.
     /// </summary>
     public void Release() {
       if (Key<0) {
         throw new Exception($"Track.Release(): Track '{this}' is not stored in DC.Data, key is {Key}.");
       }
+      foreach (var playlistTrack in Playlists) {
+        if (playlistTrack?.Key>=0) {
+          throw new Exception($"Cannot release Track '{this}' " + Environment.NewLine + 
+            $"because '{playlistTrack}' in Track.Playlists is still stored.");
+        }
+      }
       DC.Data._TracksByTitleArtists.Remove(TitleArtists);
       onReleased();
-      DC.Data.Tracks.Remove(Key);
+      DC.Data._Tracks.Remove(Key);
     }
     partial void onReleased();
 
 
     /// <summary>
-    /// Undoes the new() statement as part of a transaction rollback.
+    /// Removes Track from parents as part of a transaction rollback of the new() statement.
     /// </summary>
     internal static void RollbackItemNew(IStorageItem item) {
       var track = (Track) item;
+      if (track.Location!=Location.NoLocation) {
+        track.Location.RemoveFromTracks(track);
+      }
       track.onRollbackItemNew();
     }
     partial void onRollbackItemNew();
@@ -500,39 +585,52 @@ namespace MusicPlayer  {
     /// Restores the Track item data as it was before the last update as part of a transaction rollback.
     /// </summary>
     internal static void RollbackItemUpdate(IStorageItem oldStorageItem, IStorageItem newStorageItem) {
-      var oldItem = (Track) oldStorageItem;
-      var newItem = (Track) newStorageItem;
-      if (newItem.FileName!=oldItem.FileName) {
-        throw new Exception($"Track.Update(): Property FileName '{newItem.FileName}' is " +
-          $"readonly, FileName '{oldItem.FileName}' read from the CSV file should be the same." + Environment.NewLine + 
-          newItem.ToString());
+      var oldItem = (Track) oldStorageItem;//an item clone with the values before item was updated
+      var item = (Track) newStorageItem;//is the instance whose values should be restored
+
+      // if possible, throw exceptions before changing anything
+      if (item.FileName!=oldItem.FileName) {
+        throw new Exception($"Track.Update(): Property FileName '{item.FileName}' is " +
+          $"readonly, FileName '{oldItem.FileName}' should be the same." + Environment.NewLine + 
+          item.ToString());
       }
-      if (newItem.FullFileName!=oldItem.FullFileName) {
-        throw new Exception($"Track.Update(): Property FullFileName '{newItem.FullFileName}' is " +
-          $"readonly, FullFileName '{oldItem.FullFileName}' read from the CSV file should be the same." + Environment.NewLine + 
-          newItem.ToString());
+      if (item.FullFileName!=oldItem.FullFileName) {
+        throw new Exception($"Track.Update(): Property FullFileName '{item.FullFileName}' is " +
+          $"readonly, FullFileName '{oldItem.FullFileName}' should be the same." + Environment.NewLine + 
+          item.ToString());
       }
-      newItem.Title = oldItem.Title;
-      if (newItem.Duration!=oldItem.Duration) {
-        throw new Exception($"Track.Update(): Property Duration '{newItem.Duration}' is " +
-          $"readonly, Duration '{oldItem.Duration}' read from the CSV file should be the same." + Environment.NewLine + 
-          newItem.ToString());
+      if (item.Location!=oldItem.Location) {
+        throw new Exception($"Track.Update(): Property Location '{item.Location}' is " +
+          $"readonly, Location '{oldItem.Location}' should be the same." + Environment.NewLine + 
+          item.ToString());
       }
-      newItem.Album = oldItem.Album;
-      newItem.AlbumTrack = oldItem.AlbumTrack;
-      newItem.Artists = oldItem.Artists;
-      newItem.Composers = oldItem.Composers;
-      newItem.Genres = oldItem.Genres;
-      newItem.Publisher = oldItem.Publisher;
-      newItem.Year = oldItem.Year;
-      newItem.Weight = oldItem.Weight;
-      newItem.Volume = oldItem.Volume;
-      newItem.SkipStart = oldItem.SkipStart;
-      newItem.SkipEnd = oldItem.SkipEnd;
-      DC.Data._TracksByTitleArtists.Remove(newItem.TitleArtists);
-      newItem.TitleArtists = oldItem.TitleArtists;
-      DC.Data._TracksByTitleArtists.Add(newItem.TitleArtists, newItem);
-      newItem.onRollbackItemUpdated(oldItem);
+      if (item.Duration!=oldItem.Duration) {
+        throw new Exception($"Track.Update(): Property Duration '{item.Duration}' is " +
+          $"readonly, Duration '{oldItem.Duration}' should be the same." + Environment.NewLine + 
+          item.ToString());
+      }
+
+      // remove updated item from dictionaries
+      DC.Data._TracksByTitleArtists.Remove(item.TitleArtists);
+
+      // updated item: restore old values
+      item.Title = oldItem.Title;
+      item.Album = oldItem.Album;
+      item.AlbumTrack = oldItem.AlbumTrack;
+      item.Artists = oldItem.Artists;
+      item.Composers = oldItem.Composers;
+      item.Publisher = oldItem.Publisher;
+      item.Year = oldItem.Year;
+      item.Genres = oldItem.Genres;
+      item.Weight = oldItem.Weight;
+      item.Volume = oldItem.Volume;
+      item.SkipStart = oldItem.SkipStart;
+      item.SkipEnd = oldItem.SkipEnd;
+      item.TitleArtists = oldItem.TitleArtists;
+
+      // add item with previous values to dictionaries
+      DC.Data._TracksByTitleArtists.Add(item.TitleArtists, item);
+      item.onRollbackItemUpdated(oldItem);
     }
     partial void onRollbackItemUpdated(Track oldTrack);
 
@@ -556,15 +654,16 @@ namespace MusicPlayer  {
         $"{this.GetKeyOrHash()}|" +
         $" {FileName}|" +
         $" {FullFileName}|" +
+        $" Location {Location.GetKeyOrHash()}|" +
         $" {Title}|" +
         $" {Duration}|" +
         $" {Album}|" +
         $" {AlbumTrack}|" +
         $" {Artists}|" +
         $" {Composers}|" +
-        $" {Genres}|" +
         $" {Publisher}|" +
         $" {Year}|" +
+        $" {Genres}|" +
         $" {Weight}|" +
         $" {Volume}|" +
         $" {SkipStart}|" +
@@ -584,15 +683,16 @@ namespace MusicPlayer  {
         $"{Key.ToKeyString()}," +
         $" {FileName}," +
         $" {FullFileName}," +
+        $" {Location.ToShortString()}," +
         $" {Title}," +
         $" {Duration}," +
         $" {Album}," +
         $" {AlbumTrack}," +
         $" {Artists}," +
         $" {Composers}," +
-        $" {Genres}," +
         $" {Publisher}," +
         $" {Year}," +
+        $" {Genres}," +
         $" {Weight}," +
         $" {Volume}," +
         $" {SkipStart}," +
@@ -612,20 +712,22 @@ namespace MusicPlayer  {
         $"Key: {Key.ToKeyString()}," +
         $" FileName: {FileName}," +
         $" FullFileName: {FullFileName}," +
+        $" Location: {Location.ToShortString()}," +
         $" Title: {Title}," +
         $" Duration: {Duration}," +
         $" Album: {Album}," +
         $" AlbumTrack: {AlbumTrack}," +
         $" Artists: {Artists}," +
         $" Composers: {Composers}," +
-        $" Genres: {Genres}," +
         $" Publisher: {Publisher}," +
         $" Year: {Year}," +
+        $" Genres: {Genres}," +
         $" Weight: {Weight}," +
         $" Volume: {Volume}," +
         $" SkipStart: {SkipStart}," +
         $" SkipEnd: {SkipEnd}," +
-        $" TitleArtists: {TitleArtists};";
+        $" TitleArtists: {TitleArtists}," +
+        $" Playlists: {Playlists.Count};";
       onToString(ref returnString);
       return returnString;
     }

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Storage;
+using StorageLib;
 
 
 namespace MusicPlayer  {
@@ -13,6 +13,17 @@ namespace MusicPlayer  {
     #region Properties
     //      ----------
 
+    public IReadOnlyDictionary<string, string> ArtistsStrings => artistsStrings;
+    readonly SortedDictionary<string, string> artistsStrings = new();
+
+    private void updateArtists() {
+      artistsStrings.Clear();
+      if (Artists is not null) {
+        foreach (var artistString in Artists.Split(';', StringSplitOptions.TrimEntries|StringSplitOptions.RemoveEmptyEntries)) {
+          artistsStrings.Add(artistString.ToLowerInvariant(), artistString);
+        }
+      }
+    }
     #endregion
 
 
@@ -25,10 +36,11 @@ namespace MusicPlayer  {
     #region Constructors
     //      ------------
 
-    public Track(FileInfo fileInfo, bool isStoring = true) {
+    public Track(FileInfo fileInfo, Location location, bool isStoring = true) {
       Key = StorageExtensions.NoKey;
       FileName = fileInfo.Name[..^".mp3".Length];
       FullFileName = fileInfo.FullName;
+      Location = location;
       var fileProperties = TagLib.File.Create(FullFileName);
       var tag = fileProperties.Tag;
       Title = string.IsNullOrEmpty(tag.Title) ? null : tag.Title;
@@ -46,6 +58,8 @@ namespace MusicPlayer  {
       SkipStart = null;
       SkipEnd = null;
       TitleArtists = Title?.ToLowerInvariant().Trim() + "|" + Artists?.ToLowerInvariant().Trim();
+      playlists = new List<PlaylistTrack>();
+      Location.AddToTracks(this);
 
       onConstruct();
       if (DC.Data.IsTransaction) {
@@ -61,22 +75,25 @@ namespace MusicPlayer  {
     /// <summary>
     /// Called once the constructor has filled all the properties
     /// </summary>
-    //partial void onConstruct() {
-    //}
+    partial void onConstruct() {
+      updateArtists();
+    }
 
 
     /// <summary>
     /// Called once the cloning constructor has filled all the properties. Clones have no children data.
     /// </summary>
-    //partial void onCloned(Track clone) {
-    //}
+    partial void onCloned(Track _) {
+      updateArtists();
+    }
 
 
     /// <summary>
     /// Called once the CSV-constructor who reads the data from a CSV file has filled all the properties
     /// </summary>
-    //partial void onCsvConstruct() {
-    //}
+    partial void onCsvConstruct() {
+      updateArtists();
+    }
 
 
     #endregion
@@ -107,7 +124,7 @@ namespace MusicPlayer  {
 
 
     /// <summary>
-    /// Called after all properties of Track are updated, but before the HasChanged event gets raised
+    /// Called before any property of Track us updated and before the HasChanged event gets raised
     /// </summary>
     //partial void onUpdating(
     //string? title, 
@@ -130,15 +147,17 @@ namespace MusicPlayer  {
     /// <summary>
     /// Called after all properties of Track are updated, but before the HasChanged event gets raised
     /// </summary>
-    //partial void onUpdated(Track old) {
-    //}
+    partial void onUpdated(Track _) {
+      updateArtists();
+    }
 
 
     /// <summary>
     /// Called after an update for Track is read from a CSV file
     /// </summary>
-    //partial void onCsvUpdate() {
-    //}
+    partial void onCsvUpdate() {
+      updateArtists();
+    }
 
 
     /// <summary>
@@ -165,8 +184,9 @@ namespace MusicPlayer  {
     /// <summary>
     /// Called after Track.Update() transaction is rolled back
     /// </summary>
-    //partial void onRollbackItemUpdated(Track oldTrack) {
-    //}
+    partial void onRollbackItemUpdated(Track _) {
+      updateArtists();
+    }
 
 
     /// <summary>

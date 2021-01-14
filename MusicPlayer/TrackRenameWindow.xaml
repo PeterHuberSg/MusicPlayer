@@ -55,7 +55,7 @@
 
     <Label Grid.Row="6" Grid.Column="0" Content="Genres" Target="{Binding ElementName=GenresTextBoxNew}"/>
     <TextBox  Grid.Row="6" Grid.Column="1" x:Name="GenresTextBox" IsReadOnly="True"/>
-    <wwl:CheckedTextBox  Grid.Row="6" Grid.Column="2" x:Name="GenresTextBoxNew"/>
+    <wwl:CheckedEditComboBox Grid.Row="6" Grid.Column="2" x:Name="GenreEditComboBox" IsEditable="True"/>
 
     <Label Grid.Row="7" Grid.Column="0" Content="Publisher" Target="{Binding ElementName=PublisherTextBoxNew}"/>
     <TextBox  Grid.Row="7" Grid.Column="1" x:Name="PublisherTextBox" IsReadOnly="True"/>

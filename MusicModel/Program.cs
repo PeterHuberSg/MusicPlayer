@@ -1,4 +1,4 @@
-﻿using Storage;
+﻿using StorageLib;
 
 _ = new StorageClassGenerator(
   sourceDirectoryString: @"C:\Users\peter\Source\Repos\MusicPlayer\MusicModel", //directory from where the .cs files get read.

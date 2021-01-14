@@ -20,40 +20,39 @@
       <RowDefinition/>
     </Grid.RowDefinitions>
     
-    <DockPanel Grid.Row="0" Grid.Column="0">
-      <Button DockPanel.Dock="Right" x:Name="ChangeDirectoryButton" Content="_Change"/>
-      <TextBox DockPanel.Dock="Right" x:Name="ImportTextBox" Width="200"/>
+    <DockPanel Grid.Row="0" Grid.Column="0" Background="Gainsboro">
+      <DockPanel.Resources>
+        <Style TargetType="Button">
+          <Setter Property="Margin" Value="5, 3, 5, 3"/>
+        </Style>
+        <Style TargetType="TextBox">
+          <Setter Property="Margin" Value="0, 3, 5, 3"/>
+        </Style>
+      </DockPanel.Resources>
+      <Button DockPanel.Dock="Right" x:Name="ChangeDirectoryButton" Content="_Change" ToolTip="Change import directory"/>
+      <TextBox DockPanel.Dock="Right" x:Name="ImportTextBox" Width="200" IsReadOnly="True" Background="Transparent"/>
       <TextBox x:Name="DirectoryTextBox"/>
     </DockPanel>
 
     <local:FilterStackPanel Grid.Row="1">
       <TextBlock FontWeight="Bold" Margin="0,3, 3, 3">Filter:</TextBlock>
-      <!--<Label Target="{Binding ElementName=FilterMinTradingValueCheckBox}" Content="Filters: MinValue" 
-              ToolTip="Average trading value at least 1 million a day"/>
-      <CheckBox Name="FilterMinTradingValueCheckBox" ToolTip="Average trading value at least 1 million a day"/>
-      <Label Target="{Binding ElementName=FilterMinTradingDaysCheckBox}" Content="MinDays" ToolTip="Traded for at least 1 month"/>
-      <CheckBox Name="FilterMinTradingDaysCheckBox" ToolTip="Traded for at least 1 month"/>
-      <Label Target="{Binding ElementName=FilterMinus7DaysCheckBox}" Content="Profit _7 Days" ToolTip="Made a profit the last 7 days"/>
-      <CheckBox Name="FilterMinus7DaysCheckBox" ToolTip="Made a profit the last 7 days"/>
-      <Label Target="{Binding ElementName=FilterSgxWarningCheckBox}" Content="SgxWarn" ToolTip="Sgx warns about extraordinary stock activities"/>
-      <CheckBox Name="FilterSgxWarningCheckBox" IsThreeState="True" ToolTip="Sgx warns about extraordinary stock activities"/>
-      <Label Target="{Binding ElementName=FilterPennyCheckBox}" Content="Penny Stock" ToolTip="Is a penny stock"/>-->
-      <!--<CheckBox Name="FilterPennyCheckBox" IsThreeState="True" ToolTip="Is a penny stock"/>-->
       <TextBox Name="FilterTextBox" Width="100"/>
-      <Label Target="{Binding ElementName=AlbumComboBox}" Content="_Album:"/>
-      <ComboBox x:Name="AlbumComboBox" Width="100"/>
       <Label Target="{Binding ElementName=ArtistComboBox}" Content="_Artist:"/>
       <ComboBox x:Name="ArtistComboBox" Width="100"/>
-      <Label Target="{Binding ElementName=ComposerComboBox}" Content="_Compose:"/>
+      <Label Target="{Binding ElementName=AlbumComboBox}" Content="_Album:"/>
+      <ComboBox x:Name="AlbumComboBox" Width="100"/>
+      <Label Target="{Binding ElementName=ComposerComboBox}" Content="_Composer:"/>
       <ComboBox x:Name="ComposerComboBox" Width="100"/>
-      <Label Target="{Binding ElementName=GenreComboBox}" Content="_Genre:"/>
-      <ComboBox x:Name="GenreComboBox" Width="100"/>
       <Label Target="{Binding ElementName=PublisherComboBox}" Content="_Publisher:"/>
       <ComboBox x:Name="PublisherComboBox" Width="100"/>
       <Label Target="{Binding ElementName=YearComboBox}" Content="_Year:"/>
       <ComboBox x:Name="YearComboBox" Width="100"/>
+      <Label Target="{Binding ElementName=GenreComboBox}" Content="_Genre:"/>
+      <ComboBox x:Name="GenreComboBox" Width="100"/>
       <CheckBox x:Name="ImportCheckBox" IsThreeState="true" IsChecked="{x:Null}" 
                 ToolTip="Filter tracks wether they are marked for import or not."/>
+      <CheckBox x:Name="PlayListCheckBox" IsThreeState="true" IsChecked="{x:Null}" 
+                ToolTip="Filter tracks wether they are marked to be included in the PlayList or not."/>
       <CheckBox x:Name="ExistCheckBox" IsThreeState="true" IsChecked="{x:Null}" 
                 ToolTip="Filter tracks wether they are imported into MusicPlayer already or not."/>
       <CheckBox x:Name="DuplicateCheckBox" IsThreeState="true" IsChecked="{x:Null}" 
@@ -61,7 +60,7 @@
       <Button x:Name="ClearButton" Content="_Clear"/>
       
       <Button x:Name="AddAllButton" Content="_Add all" Margin="40,3,5,3"/>
-      <Button x:Name="RemoveAllButton" Content="_Remove"/>
+      <Button x:Name="ClearAllButton" Content="_Clear"/>
       <TextBox x:Name="SelectedCountTextBox" MinWidth="40" IsReadOnly="True"/>
       <Button x:Name="RenameTrackButton" Content="Re_name"/>
     </local:FilterStackPanel>
@@ -76,6 +75,37 @@
           <Setter Property="HorizontalAlignment" Value="Right" />
           <Setter Property="Margin" Value="2,0,2,0" />
         </Style>
+        <Style x:Key="ImportStyle" TargetType="CheckBox">
+          <!--Setting the ElementStyle of a DataGridCheckBoxColumn makes it possible that just one click is enough enstead of 2-->
+          <Setter Property="Visibility" 
+                    Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type DataGridRow}}, 
+                    Path =Item.ImportCheckBoxVisibility}" />
+          <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+        <!--<Style x:Key="OneClickCheckBoxStyle" TargetType="CheckBox">
+          <Setter Property="Visibility" 
+                    Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type DataGridRow}}, Mode=OneWay,
+                    Path =Item.PlaylistCheckBoxVisibility}" />
+          <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="PlaylistBackgroundCheckBoxStyle" TargetType="DataGridCell">
+          <Setter Property="Background" 
+                    Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type DataGridRow}}, Mode=OneWay,
+                    Path =Item.PlaylistBackground}" />
+        </Style>-->
+
+        <DataTemplate x:Key="PlaylistCheckBoxTemplate">
+          <CheckBox IsChecked="{Binding Path=IsAddPlaylist, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" 
+                    IsEnabled="{Binding PlaylistCheckBoxIsEnabled}" Visibility="{Binding PlaylistCheckBoxVisibility}"
+                    VerticalContentAlignment="Center"/>
+          <!--<DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding Path=IsMonday}" Value="True">
+              <Setter Property="Visibility" Value="Hidden"/>
+            </DataTrigger>
+          </DataTemplate.Triggers>-->
+        </DataTemplate>
+
+
       </DataGrid.Resources>
       <DataGrid.Columns>
         <DataGridTextColumn Binding="{Binding Path=No, StringFormat=N0}" Header="#"  
@@ -87,16 +117,38 @@
         <DataGridTextColumn Binding="{Binding Path=Track.AlbumTrack}" Header="Track" IsReadOnly="True" Width="30"/>
         <DataGridTextColumn Binding="{Binding Path=Track.Artists}" Header="Artists" IsReadOnly="True" Width="200"/>
         <DataGridTextColumn Binding="{Binding Path=Track.Composers}" Header="Composers" IsReadOnly="True" Width="200"/>
-        <DataGridTextColumn Binding="{Binding Path=Track.Genres}" Header="Genres" IsReadOnly="True" Width="100"/>
         <DataGridTextColumn Binding="{Binding Path=Track.Publisher}" Header="Publisher" IsReadOnly="True" Width="100"/>
         <DataGridTextColumn Binding="{Binding Path=Track.Year}" Header="Year   " IsReadOnly="True" Width="SizeToHeader"/>
-        <DataGridCheckBoxColumn Binding="{Binding Path=IsSelected, UpdateSourceTrigger=PropertyChanged}" Header="Import"/>
-        <DataGridCheckBoxColumn Binding="{Binding Path=IsExisting}" Header="Exist" IsReadOnly="True"/>
-        <DataGridCheckBoxColumn Binding="{Binding Path=IsDouble}" Header="Dupl." IsReadOnly="True"/>
+        <DataGridTextColumn Binding="{Binding Path=Track.Genres}" Header="Genres" IsReadOnly="True" Width="100"/>
+        <DataGridCheckBoxColumn Binding="{Binding Path=IsSelected, UpdateSourceTrigger=PropertyChanged}" Header="Import"
+                                ElementStyle="{StaticResource ImportStyle}" />
+        <!--<DataGridCheckBoxColumn Binding="{Binding Path=IsAddPlaylist, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" Header="PList"
+                                ElementStyle="{StaticResource OneClickCheckBoxStyle}"
+                                CellStyle="{StaticResource PlaylistBackgroundCheckBoxStyle}"/>-->
+        <DataGridTemplateColumn Header="PList" CellTemplate="{StaticResource PlaylistCheckBoxTemplate}"/>
+        <DataGridCheckBoxColumn Binding="{Binding Path=IsExisting, Mode=OneTime}" Header="Exist" IsReadOnly="True"/>
+        <DataGridCheckBoxColumn Binding="{Binding Path=IsDouble, Mode=OneTime}" Header="Dupl." IsReadOnly="True"/>
       </DataGrid.Columns>
     </DataGrid>
-    
-    <Button Grid.Row="3" Grid.Column="0" x:Name="SaveButton" Content="Save"/>
+
+    <DockPanel Grid.Row="3" Grid.Column="0" Background="Gainsboro">
+      <DockPanel.Resources>
+        <Style TargetType="Button">
+          <Setter Property="Margin" Value="5, 3, 5, 3"/>
+        </Style>
+        <Style TargetType="TextBox">
+          <Setter Property="Margin" Value="0, 3, 5, 3"/>
+        </Style>
+        <Style TargetType="ComboBox">
+          <Setter Property="Margin" Value="0, 3, 5, 3"/>
+        </Style>
+      </DockPanel.Resources>
+      <Label Target="{Binding ElementName=LocationTextBox}" Content="_Abbreviation:"/>
+      <TextBox x:Name="LocationTextBox" Width="150" ToolTip="A short name for import directory" VerticalAlignment="Center"/>
+      <Label Target="{Binding ElementName=PlayListComboBox}" Content="_PlayList:" VerticalAlignment="Center"/>
+      <ComboBox x:Name="PlayListComboBox" IsEditable="True" Width="150" VerticalAlignment="Center"/>
+      <Button x:Name="ImportButton" Content="_Import" Margin="20,5,5,5"/>
+    </DockPanel>
 
     <local:PlayerControl Grid.Row="4" Grid.Column="0" x:Name="TrackPlayer"/>
 

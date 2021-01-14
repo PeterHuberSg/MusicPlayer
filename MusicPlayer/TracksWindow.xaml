@@ -1,0 +1,81 @@
+﻿<Window x:Class="MusicPlayer.TracksWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MusicPlayer"
+        mc:Ignorable="d"
+        Title="Tracks" Height="450" Width="1500" WindowState="Maximized">
+  <Window.Resources>
+    <CollectionViewSource x:Key="TracksViewSource" CollectionViewType="ListCollectionView"/>
+  </Window.Resources>
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="auto"/>
+    </Grid.RowDefinitions>
+
+    <local:FilterStackPanel Grid.Row="0">
+      <TextBlock FontWeight="Bold" Margin="0,3, 3, 3">Filter:</TextBlock>
+      <TextBox Name="FilterTextBox" Width="100"/>
+      <Label Target="{Binding ElementName=LocationsComboBox}" Content="_Locations:"/>
+      <ComboBox x:Name="LocationsComboBox" Width="100"/>
+      <Label Target="{Binding ElementName=PlayListsComboBox}" Content="_PlayLists:"/>
+      <ComboBox x:Name="PlayListsComboBox" Width="100"/>
+      <Label Target="{Binding ElementName=ArtistComboBox}" Content="_Artist:"/>
+      <ComboBox x:Name="ArtistComboBox" Width="100"/>
+      <Label Target="{Binding ElementName=AlbumComboBox}" Content="_Album:"/>
+      <ComboBox x:Name="AlbumComboBox" Width="100"/>
+      <Label Target="{Binding ElementName=GenreComboBox}" Content="_Genre:"/>
+      <ComboBox x:Name="GenreComboBox" Width="80"/>
+      <Label Target="{Binding ElementName=YearComboBox}" Content="_Year:"/>
+      <ComboBox x:Name="YearComboBox" Width="40"/>
+      <Label Target="{Binding ElementName=SelectedCheckBox}" Content="_Selected:"/>
+      <CheckBox x:Name="SelectedCheckBox" IsThreeState="true" IsChecked="{x:Null}" 
+                ToolTip="Filter tracks wether they are marked as selected or not."/>
+      <Button x:Name="ClearButton" Content="_Clear"/>
+
+      <Button x:Name="SelectAllButton" Content="_Select all" Margin="20,3,5,3"/>
+      <Button x:Name="UnselectAllButton" Content="_Unselect"/>
+      <TextBox x:Name="SelectedCountTextBox" MinWidth="40" IsReadOnly="True"/>
+      <Button x:Name="AddToPlayListButton" Content="_Add PlayList"/>
+      <ComboBox x:Name="AddToPlayListsComboBox" IsEditable="True" Width="100"/>
+
+      <Button x:Name="RenameTrackButton" Content="Re_name"/>
+    </local:FilterStackPanel>
+
+
+    <DataGrid Grid.Row="1" x:Name="TracksDataGrid"
+              DataContext="{StaticResource TracksViewSource}" ItemsSource="{Binding}" AutoGenerateColumns="False" 
+              EnableRowVirtualization="True" RowDetailsVisibilityMode="Collapsed" EnableColumnVirtualization="False"
+              AllowDrop="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False">
+      <DataGrid.Resources>
+        <Style x:Key="RightAlignStyle" TargetType="TextBlock">
+          <Setter Property="HorizontalAlignment" Value="Right" />
+          <Setter Property="Margin" Value="2,0,2,0" />
+        </Style>
+      </DataGrid.Resources>
+      <DataGrid.Columns>
+        <DataGridTextColumn Binding="{Binding Path=No, StringFormat=N0}" Header="#"  
+                            ElementStyle="{StaticResource RightAlignStyle}" IsReadOnly="True" Width="45"/>
+        <DataGridTextColumn Binding="{Binding Path=Track.Location.Name}" Header="Location" IsReadOnly="True" Width="200"/>
+        <DataGridTextColumn Binding="{Binding Path=Playlists}" Header="Playlists" IsReadOnly="True" Width="200"/>
+        <DataGridTextColumn Binding="{Binding Path=Track.Artists}" Header="Artists" IsReadOnly="True" Width="100"/>
+        <DataGridTextColumn Binding="{Binding Path=Track.Album}" Header="Album" IsReadOnly="True" Width="200"/>
+        <DataGridTextColumn Binding="{Binding Path=Track.AlbumTrack}" Header="Track" IsReadOnly="True" Width="30"/>
+        <DataGridTextColumn Binding="{Binding Path=Track.Title}" Header="Title" IsReadOnly="True" Width="200"/>
+        <DataGridTextColumn Binding="{Binding Path=Track.Duration, StringFormat=mm\\:ss}" Header="Duration" 
+                            ElementStyle="{StaticResource RightAlignStyle}" IsReadOnly="True" Width="SizeToHeader"/>
+        <DataGridTextColumn Binding="{Binding Path=Track.Composers}" Header="Composers" IsReadOnly="True" Width="100"/>
+        <DataGridTextColumn Binding="{Binding Path=Track.Publisher}" Header="Publisher" IsReadOnly="True" Width="100"/>
+        <DataGridTextColumn Binding="{Binding Path=Track.Genres}" Header="Genres" IsReadOnly="True" Width="100"/>
+        <DataGridTextColumn Binding="{Binding Path=Track.Year}" Header="Year   " IsReadOnly="True" Width="SizeToHeader"/>
+        <DataGridCheckBoxColumn Binding="{Binding Path=IsTrackSelected, UpdateSourceTrigger=PropertyChanged}" Header="Selected"/>
+      </DataGrid.Columns>
+    </DataGrid>
+
+    <local:PlayerControl Grid.Row="2" Grid.Column="0" x:Name="TrackPlayer"/>
+  </Grid>
+</Window>

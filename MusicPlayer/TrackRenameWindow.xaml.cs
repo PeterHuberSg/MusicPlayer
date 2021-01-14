@@ -26,7 +26,10 @@ namespace MusicPlayer {
   public partial class TrackRenameWindow: CheckedWindow {
 
 
-    public static void Show(Window ownerWindow, Track track, Action<Track> refreshOwner) {
+    #region Constructor
+    //      -----------
+
+    public static void Show(Window ownerWindow, Track track, Action<Track>? refreshOwner) {
       var window = new TrackRenameWindow(track, refreshOwner) { Owner = ownerWindow };
       window.Show();
     }
@@ -60,7 +63,26 @@ namespace MusicPlayer {
         ComposersTextBox.Text = track.Composers;
         ComposersTextBoxNew.Initialise(track.Composers);
         GenresTextBox.Text = track.Genres;
-        GenresTextBoxNew.Initialise(track.Genres);
+
+        GenreEditComboBox.ItemsSource = DC.Data.Genres;
+        int? genreIndex = 0;
+        var isFound = false;
+        foreach (var genre in DC.Data.Genres) {
+          if (genre==track.Genres) {
+            isFound = true;
+            break;
+          }
+          genreIndex++;
+        }
+        string? text;
+        if (isFound) {
+          text = null;
+        } else {
+          genreIndex = null;
+          text = track.Genres;
+        }
+        GenreEditComboBox.Initialise(text, genreIndex);
+        GenreEditComboBox.Text = track.Genres;
         PublisherTextBox.Text = track.Publisher;
         PublisherTextBoxNew.Initialise(track.Publisher);
         YearTextBox.Text = track.Year.ToString();
@@ -71,6 +93,15 @@ namespace MusicPlayer {
       } else {
         MainWindow.Register(this, "Rename Track");
       }
+    }
+    #endregion
+
+
+    #region Events
+    //      ------
+
+    private void trackRenameWindow_Loaded(object sender, RoutedEventArgs e) {
+      TitleTextBoxNew.Focus();
     }
 
 
@@ -94,11 +125,6 @@ namespace MusicPlayer {
 
     protected override void OnIsAvailableChanged() {
       updateSaveButtonIsEnabled();
-    }
-
-
-    private void trackRenameWindow_Loaded(object sender, RoutedEventArgs e) {
-      TitleTextBoxNew.Focus();
     }
 
 
@@ -128,45 +154,42 @@ namespace MusicPlayer {
       fileProperties.Tag.Track = (uint)(AlbumTrackTextBoxNew.IntValue??0);
       fileProperties.Tag.Performers = ArtistsTextBoxNew.Text.Split(';', StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries);
       fileProperties.Tag.Composers = ComposersTextBoxNew.Text.Split(';', StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries);
-      fileProperties.Tag.Genres = GenresTextBoxNew.Text.Split(';', StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries);
+      fileProperties.Tag.Genres = GenreEditComboBox.Text?.Split(';', StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries);
       fileProperties.Tag.Publisher = PublisherTextBoxNew.Text.Length == 0 ? null : PublisherTextBoxNew.Text;
       fileProperties.Tag.Year = (uint)(YearTextBoxNew.IntValue??0);
       fileProperties.Save();
 
       if (refreshOwner is not null) {
-        var changedTrack = new Track(
-          track.FileName,
-          track.FullFileName,
+        track.Update(
           stringOrNull(TitleTextBoxNew.Text),
-          track.Duration,
           stringOrNull(AlbumTextBoxNew.Text),
           AlbumTrackTextBoxNew.IntValue,
           stringOrNull(ArtistsTextBoxNew.Text),
           stringOrNull(ComposersTextBoxNew.Text),
-          stringOrNull(GenresTextBoxNew.Text),
           stringOrNull(PublisherTextBoxNew.Text),
           YearTextBoxNew.IntValue,
+          stringOrNull(GenreEditComboBox.Text),
           track.Weight,
           track.Volume,
           track.SkipStart,
           track.SkipEnd,
-          TitleTextBoxNew.Text.ToLowerInvariant().Trim() + "|" + ArtistsTextBoxNew.Text.ToLowerInvariant().Trim(),
-          isStoring: false);
-        refreshOwner(changedTrack);
+          TitleTextBoxNew.Text.ToLowerInvariant().Trim() + "|" + ArtistsTextBoxNew.Text.ToLowerInvariant().Trim());
+        refreshOwner(track);
       }
 
       ResetHasChanged();
       Close();
     }
 
-    private static string? stringOrNull(string text) {
-      if (text.Length==0) return null;
 
-      return text;
+    private static string? stringOrNull(string? text) {
+      return (text?.Length??0)==0 ? null : text;
     }
+
 
     private void trackRenameWindow_Closed(object? sender, EventArgs e) {
       Owner?.Activate();
     }
+    #endregion
   }
 }
