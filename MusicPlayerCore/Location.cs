@@ -6,7 +6,7 @@ using StorageLib;
 namespace MusicPlayer  {
 
 
-  public partial class Location: IStorageItemGeneric<Location> {
+  public partial class Location: IStorageItem<Location> {
 
 
     #region Properties

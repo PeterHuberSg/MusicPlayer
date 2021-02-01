@@ -50,17 +50,17 @@
       <Label Target="{Binding ElementName=GenreComboBox}" Content="_Genre:"/>
       <ComboBox x:Name="GenreComboBox" Width="100"/>
       <CheckBox x:Name="ImportCheckBox" IsThreeState="true" IsChecked="{x:Null}" 
-                ToolTip="Filter tracks wether they are marked for import or not."/>
+                ToolTip="Filter tracks which are marked for import or not."/>
       <CheckBox x:Name="PlayListCheckBox" IsThreeState="true" IsChecked="{x:Null}" 
-                ToolTip="Filter tracks wether they are marked to be included in the PlayList or not."/>
+                ToolTip="Filter tracks which are marked to be included in the PlayList or not."/>
       <CheckBox x:Name="ExistCheckBox" IsThreeState="true" IsChecked="{x:Null}" 
-                ToolTip="Filter tracks wether they are imported into MusicPlayer already or not."/>
+                ToolTip="Filter tracks which are imported into MusicPlayer already or not."/>
       <CheckBox x:Name="DuplicateCheckBox" IsThreeState="true" IsChecked="{x:Null}" 
                 ToolTip="Filter tracks which are twice in the import list."/>
       <Button x:Name="ClearButton" Content="_Clear"/>
-      
-      <Button x:Name="AddAllButton" Content="_Add all" Margin="40,3,5,3"/>
-      <Button x:Name="ClearAllButton" Content="_Clear"/>
+
+      <Button x:Name="SelectAllButton" Content="_Select all" Margin="40,3,5,3"/>
+      <Button x:Name="UnselectAllButton" Content="_Unselect"/>
       <TextBox x:Name="SelectedCountTextBox" MinWidth="40" IsReadOnly="True"/>
       <Button x:Name="RenameTrackButton" Content="Re_name"/>
     </local:FilterStackPanel>
@@ -104,8 +104,6 @@
             </DataTrigger>
           </DataTemplate.Triggers>-->
         </DataTemplate>
-
-
       </DataGrid.Resources>
       <DataGrid.Columns>
         <DataGridTextColumn Binding="{Binding Path=No, StringFormat=N0}" Header="#"  

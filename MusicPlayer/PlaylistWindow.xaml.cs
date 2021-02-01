@@ -70,25 +70,25 @@ namespace MusicPlayer {
 
       if (playlist is not null) {
         PlaylistNameTextBox.Text = playlist.Name;
-        foreach (var playListTrack in playlist.Tracks.OrderBy(plt => plt.TrackNo)) {
+        foreach (var playListTrack in playlist.Tracks.GetStoredItems().OrderBy(plt => plt.TrackNo)) {
           tracks.Add(playListTrack.Track);
           trackRows.Add(new TrackRow(playListTrack.Track, isInPlaylist: true, isSelected: false, hasSelectedChanged));
         }
-        if (additionalTracks is not null) {
-          foreach (var track in additionalTracks) {
-            var isExistsAlready = false;
-            foreach (var playListTrack in track.Playlists) {
-              if (playListTrack.Playlist!=playlist) {
-                isExistsAlready = true;
-                break;
-              }
-            }
-            if (!isExistsAlready) {
-              tracks.Add(track);
-              trackRows.Add(new TrackRow(track, isInPlaylist: false, isSelected: true, hasSelectedChanged));
-            }
-          }
-        }
+        //if (additionalTracks is not null) {
+        //  foreach (var track in additionalTracks) {
+        //    var isExistsAlready = false;
+        //    foreach (var playListTrack in track.Playlists) {
+        //      if (playListTrack.Playlist==playlist) {
+        //        isExistsAlready = true;
+        //        break;
+        //      }
+        //    }
+        //    if (!isExistsAlready) {
+        //      tracks.Add(track);
+        //      trackRows.Add(new TrackRow(track, isInPlaylist: false, isSelected: true, hasSelectedChanged));
+        //    }
+        //  }
+        //}
         DC.GetTracksStats(ref totalDuration, locations, albums, artists, genres, years, tracks);
       }
       TracksCountTextBox.Text = tracks.Count.ToString();

@@ -16,7 +16,7 @@ using StorageLib;
 namespace MusicPlayer  {
 
 
-  public partial class Track: IStorageItemGeneric<Track> {
+  public partial class Track: IStorageItem<Track> {
 
     #region Properties
     //      ----------
@@ -84,8 +84,8 @@ namespace MusicPlayer  {
     public string TitleArtists { get; private set; }
 
 
-    public IReadOnlyList<PlaylistTrack> Playlists => playlists;
-    readonly List<PlaylistTrack> playlists;
+    public IStorageReadOnlyList<PlaylistTrack> Playlists => playlists;
+    readonly StorageList<PlaylistTrack> playlists;
 
 
     /// <summary>
@@ -178,7 +178,7 @@ namespace MusicPlayer  {
       SkipStart = skipStart;
       SkipEnd = skipEnd;
       TitleArtists = titleArtists;
-      playlists = new List<PlaylistTrack>();
+      playlists = new StorageList<PlaylistTrack>();
       Location.AddToTracks(this);
       onConstruct();
       if (DC.Data.IsTransaction) {
@@ -245,7 +245,7 @@ namespace MusicPlayer  {
       SkipEnd = csvReader.ReadIntNull();
       TitleArtists = csvReader.ReadString();
       DC.Data._TracksByTitleArtists.Add(TitleArtists, this);
-      playlists = new List<PlaylistTrack>();
+      playlists = new StorageList<PlaylistTrack>();
       if (Location!=Location.NoLocation) {
         Location.AddToTracks(this);
       }
@@ -551,8 +551,8 @@ namespace MusicPlayer  {
         }
       }
       DC.Data._TracksByTitleArtists.Remove(TitleArtists);
-      onReleased();
       DC.Data._Tracks.Remove(Key);
+      onReleased();
     }
     partial void onReleased();
 
@@ -727,7 +727,8 @@ namespace MusicPlayer  {
         $" SkipStart: {SkipStart}," +
         $" SkipEnd: {SkipEnd}," +
         $" TitleArtists: {TitleArtists}," +
-        $" Playlists: {Playlists.Count};";
+        $" Playlists: {Playlists.Count}," +
+        $" PlaylistsStored: {Playlists.CountStoredItems};";
       onToString(ref returnString);
       return returnString;
     }

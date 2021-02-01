@@ -61,8 +61,8 @@ namespace MusicPlayer {
       ExistCheckBox.Click += filterCheckBox_Click;
       DuplicateCheckBox.Click += filterCheckBox_Click;
       ClearButton.Click += clearButton_Click;
-      AddAllButton.Click += addAllButton_Click;
-      ClearAllButton.Click += clearAllButton_Click;
+      SelectAllButton.Click += selectAllButton_Click;
+      UnselectAllButton.Click += unselectAllButton_Click;
       RenameTrackButton.Click += renameTrackButton_Click;
 
       //datagrid
@@ -140,7 +140,7 @@ namespace MusicPlayer {
       }
       bool isAddPlaylist;
 
-      //Playlist CheckBox is visible is a playlist name is entered
+      //Playlist CheckBox is visible if a playlist name is entered
       public Visibility PlaylistCheckBoxVisibility { 
         get {
           return playlistCheckBoxVisibility;
@@ -169,7 +169,7 @@ namespace MusicPlayer {
       bool playlistCheckBoxIsEnabled;
 
       public bool IsExisting { get;} //track is already imported
-      public Visibility ImportCheckBoxVisibility { get; }//Import Check is only visible it track is not improted yet
+      public Visibility ImportCheckBoxVisibility { get; }//Import Check is only visible if track is not imported yet
       public bool IsDouble { get; set; } //2 tracks in the import list have the same name and artist
 
 #pragma warning disable CA2211 // Non-constant fields should not be visible
@@ -197,6 +197,7 @@ namespace MusicPlayer {
 
       Playlist? playlist;
       bool hasPlayListName;
+
 
       public void UpdatePlayListCheckBoxes(Playlist? playlist, bool hasPlayListName) {
         this.playlist = playlist;
@@ -481,7 +482,9 @@ namespace MusicPlayer {
     }
 
 
-    private void addAllButton_Click(object sender, RoutedEventArgs e) {
+    private void selectAllButton_Click(object sender, RoutedEventArgs e) {
+      //throw new Exception();
+      ////TrackRow.HasIsDeletionChanged = null;
       foreach (var item in TracksDataGrid.Items) {
         var trackRow = (TrackRow)item;
         trackRow.IsSelected = !trackRow.IsExisting;
@@ -489,11 +492,12 @@ namespace MusicPlayer {
           trackRow.IsAddPlaylist = true;
         }
       }
-      tracksViewSource.View.Refresh();
+      ////TrackRow.HasIsDeletionChanged = trackRow_HasSelectedChanged;
+      ////tracksViewSource.View.Refresh(); brauchts das ?
     }
 
 
-    private void clearAllButton_Click(object sender, RoutedEventArgs e) {
+    private void unselectAllButton_Click(object sender, RoutedEventArgs e) {
       foreach (var item in TracksDataGrid.Items) {
         var trackRow = (TrackRow)item;
         trackRow.IsSelected = false;
@@ -516,8 +520,6 @@ namespace MusicPlayer {
       updatePlayList(PlayListComboBox.Text);
     }
 
-
-    //
 
     private void playListComboBox_LostFocus(object sender, RoutedEventArgs e) {
       updatePlayList(PlayListComboBox.Text);

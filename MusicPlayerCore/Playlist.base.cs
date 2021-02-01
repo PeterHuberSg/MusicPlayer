@@ -16,7 +16,7 @@ using StorageLib;
 namespace MusicPlayer  {
 
 
-  public partial class Playlist: IStorageItemGeneric<Playlist> {
+  public partial class Playlist: IStorageItem<Playlist> {
 
     #region Properties
     //      ----------
@@ -36,8 +36,8 @@ namespace MusicPlayer  {
     public string NameLower { get; private set; }
 
 
-    public IReadOnlyList<PlaylistTrack> Tracks => tracks;
-    readonly List<PlaylistTrack> tracks;
+    public IStorageReadOnlyList<PlaylistTrack> Tracks => tracks;
+    readonly StorageList<PlaylistTrack> tracks;
 
 
     /// <summary>
@@ -77,7 +77,7 @@ namespace MusicPlayer  {
       Key = StorageExtensions.NoKey;
       Name = name;
       NameLower = Name.ToLowerInvariant();
-      tracks = new List<PlaylistTrack>();
+      tracks = new StorageList<PlaylistTrack>();
       onConstruct();
       if (DC.Data.IsTransaction) {
         DC.Data.AddTransaction(new TransactionItem(2,TransactionActivityEnum.New, Key, this));
@@ -112,7 +112,7 @@ namespace MusicPlayer  {
       Name = csvReader.ReadString();
       NameLower = Name.ToLowerInvariant();
       DC.Data._PlaylistsByNameLower.Add(NameLower, this);
-      tracks = new List<PlaylistTrack>();
+      tracks = new StorageList<PlaylistTrack>();
       onCsvConstruct();
     }
     partial void onCsvConstruct();
@@ -260,8 +260,8 @@ namespace MusicPlayer  {
         }
       }
       DC.Data._PlaylistsByNameLower.Remove(NameLower);
-      onReleased();
       DC.Data._Playlists.Remove(Key);
+      onReleased();
     }
     partial void onReleased();
 
@@ -356,7 +356,8 @@ namespace MusicPlayer  {
         $"Key: {Key.ToKeyString()}," +
         $" Name: {Name}," +
         $" NameLower: {NameLower}," +
-        $" Tracks: {Tracks.Count};";
+        $" Tracks: {Tracks.Count}," +
+        $" TracksStored: {Tracks.CountStoredItems};";
       onToString(ref returnString);
       return returnString;
     }

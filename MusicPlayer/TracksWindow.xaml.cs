@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
@@ -32,11 +34,13 @@ namespace MusicPlayer {
 
 
     readonly System.Windows.Data.CollectionViewSource tracksViewSource;
-    readonly List<TrackRow> trackRows;
+    List<TrackRow> trackRows;
 
 
     public TracksWindow() {
       InitializeComponent();
+
+      Loaded += tracksWindow_Loaded;
 
       //filter
       FilterTextBox.TextChanged += filterTextBox_TextChanged;
@@ -44,7 +48,7 @@ namespace MusicPlayer {
       LocationsComboBox.ItemsSource = DC.Data.LocationStrings;
       PlayListsComboBox.SelectionChanged += filterComboBox_SelectionChanged;
       PlayListsComboBox.ItemsSource = DC.Data.PlaylistStrings;
-      AddToPlayListsComboBox.ItemsSource = DC.Data.PlaylistStrings;
+      AddToPlayListComboBox.ItemsSource = DC.Data.PlaylistStrings;
       ArtistComboBox.SelectionChanged += filterComboBox_SelectionChanged;
       ArtistComboBox.ItemsSource = DC.Data.Artists;
       AlbumComboBox.SelectionChanged += filterComboBox_SelectionChanged;
@@ -54,20 +58,21 @@ namespace MusicPlayer {
       GenreComboBox.ItemsSource = DC.Data.Genres;
       YearComboBox.SelectionChanged += yearComboBox_SelectionChanged;
       YearComboBox.ItemsSource = DC.Data.Years;
-      SelectedCheckBox.Click += checkBox_Click;
+      DeleteCheckBox.Click += checkBox_Click;
+      PlayListCheckBox.Click += checkBox_Click;
       ClearButton.Click += clearButton_Click;
       SelectAllButton.Click += selectAllButton_Click;
       UnselectAllButton.Click += unselectAllButton_Click;
+      DeleteButton.Click += deleteButton_Click;
       AddToPlayListButton.Click += addToPlayListButton_Click;
       RenameTrackButton.Click += renameTrackButton_Click;
 
-      //read tracks
+      //datagrid
       trackRows = new();
       foreach (var track in DC.Data.Tracks.Values.OrderBy(t=>t.Title)) {
         trackRows.Add(new TrackRow(track));
       }
 
-      //datagrid
       tracksViewSource = ((System.Windows.Data.CollectionViewSource)this.FindResource("TracksViewSource"));
       tracksViewSource.Source = trackRows;
       tracksViewSource.Filter += tracksViewSource_Filter;
@@ -79,7 +84,7 @@ namespace MusicPlayer {
       contextMenu.Items.Add(renameMenuItem);
       TracksDataGrid.ContextMenu = contextMenu;
 
-      TrackRow.HasSelectedChanged = trackRow_HasSelectedChanged;
+      TrackRow.HasIsDeletionChanged = trackRow_HasSelectedChanged;
       trackRow_HasSelectedChanged();
 
       TrackPlayer.TrackChanged += trackPlayer_TrackChanged;
@@ -87,16 +92,6 @@ namespace MusicPlayer {
       Closed += memberWindow_Closed;
 
       MainWindow.Register(this, "Tracks");
-    }
-
-
-    private static void addStringParts(string? text, SortedSet<string> texts) {
-      if (text is not null) {
-        var textParts = text.Split(';', StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries);
-        foreach (var textPart in textParts) {
-          texts.Add(textPart);
-        }
-      }
     }
     #endregion
 
@@ -107,35 +102,89 @@ namespace MusicPlayer {
     static int trackNo = 0;
 
 
-    public class TrackRow {
+    public class TrackRow: INotifyPropertyChanged {
       public int No { get; }
       public Track Track { get; }
-      public string? Playlists { get; }
-      public bool IsTrackSelected {
+      public string? Playlists { get; set; }
+      public bool IsDeletion {
         get {
-          return isTrackSelected;
+          return isDeletion;
         }
         set {
-          if (isTrackSelected!=value) {
-            isTrackSelected = value;
-            HasSelectedChanged?.Invoke();
+          if (isDeletion!=value) {
+            isDeletion = value;
+            HasIsDeletionChanged?.Invoke();
           }
         }
       }
-      bool isTrackSelected;
+      bool isDeletion;
+
+      //User selected this track for adding to playlist OR CheckBox is disabled and displays that the track is already in the playlist
+      public bool IsAddPlaylist {
+        get {
+          return isAddPlaylist;
+        }
+        set {
+          if (isAddPlaylist!=value) {
+            isAddPlaylist = value;
+            HasIsAddPlaylistChanged?.Invoke();
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsAddPlaylist)));
+          }
+        }
+      }
+      bool isAddPlaylist;
+
+      //Playlist CheckBox is visible if a playlist name is entered
+      public Visibility PlaylistCheckBoxVisibility {
+        get {
+          return playlistCheckBoxVisibility;
+        }
+        set {
+          if (playlistCheckBoxVisibility!=value) {
+            playlistCheckBoxVisibility = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PlaylistCheckBoxVisibility)));
+          }
+        }
+      }
+      Visibility playlistCheckBoxVisibility;
+
+      //Playlist CheckBox is disabled when the track is already in the playlist
+      public bool PlaylistCheckBoxIsEnabled {
+        get {
+          return playlistCheckBoxIsEnabled;
+        }
+        set {
+          if (playlistCheckBoxIsEnabled!=value) {
+            playlistCheckBoxIsEnabled = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PlaylistCheckBoxIsEnabled)));
+          }
+        }
+      }
+      bool playlistCheckBoxIsEnabled;
+
+      public Visibility ImportCheckBoxVisibility { get; }//Import Check is only visible if track is not imported yet
+
+
+      public event PropertyChangedEventHandler? PropertyChanged;
 
 #pragma warning disable CA2211 // Non-constant fields should not be visible
-      public static Action? HasSelectedChanged;
+      public static Action? HasIsDeletionChanged;
+      public static Action? HasIsAddPlaylistChanged;
 #pragma warning restore CA2211
 
 
       public TrackRow(Track track) {
         No = trackNo++;
         Track = track;
+        UpdatePlayLists();
 
+        isDeletion = false;
+      }
+
+      public void UpdatePlayLists() {
         Playlists = null;
         var isFirst = true;
-        foreach (var playlistTrack in track.Playlists) {
+        foreach (var playlistTrack in Track.Playlists) {
           if (isFirst) {
             isFirst = false;
           } else {
@@ -143,8 +192,19 @@ namespace MusicPlayer {
           }
           Playlists += playlistTrack.Playlist.Name;
         }
+      }
 
-        isTrackSelected = false;
+      public void UpdatePlayListCheckBoxes(Playlist? playlist, bool hasPlayListName) {
+        if (!hasPlayListName) {
+          PlaylistCheckBoxVisibility = Visibility.Hidden;
+        } else {
+          PlaylistCheckBoxVisibility = Visibility.Visible;
+          PlaylistCheckBoxIsEnabled =!Track.Playlists.Where(plt => plt.Playlist==playlist).Any();
+          if (!PlaylistCheckBoxIsEnabled) {
+            //track is already in playlist, show it as disabled and selected
+            IsAddPlaylist = true;
+          }
+        }
       }
     }
     #endregion
@@ -152,6 +212,13 @@ namespace MusicPlayer {
 
     #region Events
     //      ------
+
+    private void tracksWindow_Loaded(object sender, RoutedEventArgs e) {
+      AddToPlayListComboBox.SelectionChanged += addToPlayListComboBox_SelectionChanged;
+      AddToPlayListComboBox.AddHandler(TextBoxBase.TextChangedEvent, new RoutedEventHandler(addToPlayListComboBox_TextChanged));
+      AddToPlayListComboBox.LostFocus += addToPlayListComboBox_LostFocus;
+      updatePlayListCheckBoxes();
+    }
 
     const int minFilterStringLength = 0;
     //const int minFilterStringLength = 2;
@@ -218,7 +285,10 @@ namespace MusicPlayer {
     private void selectAllButton_Click(object sender, RoutedEventArgs e) {
       foreach (var item in TracksDataGrid.Items) {
         var trackRow = (TrackRow)item;
-        trackRow.IsTrackSelected = true;
+        trackRow.IsDeletion = true;
+        if (trackRow.PlaylistCheckBoxIsEnabled) {
+          trackRow.IsAddPlaylist = true;
+        }
       }
       tracksViewSource.View.Refresh();
     }
@@ -227,9 +297,62 @@ namespace MusicPlayer {
     private void unselectAllButton_Click(object sender, RoutedEventArgs e) {
       foreach (var item in TracksDataGrid.Items) {
         var trackRow = (TrackRow)item;
-        trackRow.IsTrackSelected = false;
+        trackRow.IsDeletion = false;
+        if (trackRow.PlaylistCheckBoxIsEnabled) {
+          trackRow.IsAddPlaylist = false;
+        }
       }
       tracksViewSource.View.Refresh();
+    }
+
+
+    private void addToPlayListComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) {
+      if (e.AddedItems.Count>0) {
+        var addedItem = e.AddedItems[0];
+        if (addedItem is not null) {
+          updatePlayList(addedItem.ToString());
+          return;
+        }
+      }
+      updatePlayList(AddToPlayListComboBox.Text);
+    }
+
+
+    private void addToPlayListComboBox_LostFocus(object sender, RoutedEventArgs e) {
+      updatePlayList(AddToPlayListComboBox.Text);
+    }
+
+    private void addToPlayListComboBox_TextChanged(object sender, RoutedEventArgs e) {
+      updatePlayList(AddToPlayListComboBox.Text);
+    }
+
+    bool hasPlayListName;
+    Playlist? playlist;
+
+
+    private void updatePlayList(string? playlistName) {
+      var hasPlayListNameNew = !string.IsNullOrEmpty(playlistName);
+      Playlist? playlistNew;
+      if (string.IsNullOrWhiteSpace(playlistName)) {
+        playlistNew = null;
+      } else {
+        DC.Data.PlaylistsByNameLower.TryGetValue(playlistName.ToLowerInvariant(), out playlistNew);
+      }
+
+      if (hasPlayListName!=hasPlayListNameNew || playlist!=playlistNew) {
+        hasPlayListName = hasPlayListNameNew;
+        playlist = playlistNew;
+        updatePlayListCheckBoxes();
+      }
+    }
+
+
+    private void updatePlayListCheckBoxes() {
+      foreach (var item in TracksDataGrid.Items) {
+        var trackRow = (TrackRow)item;
+        trackRow.UpdatePlayListCheckBoxes(playlist, hasPlayListName);
+      }
+      updateDeletionCountTextBox();
     }
 
 
@@ -304,9 +427,16 @@ namespace MusicPlayer {
       //if no filter is active (=!isRefused) OR any filter does accept the item, then accept, i.e. OR conidion.
       isAccepted = !isRefused || isAccepted;
 
-      //only accept item which match IsSelected
-      if (SelectedCheckBox.IsChecked is not null) {
-        if (trackRow.IsTrackSelected!=SelectedCheckBox.IsChecked) {
+      //only accept item which match IsDeletion
+      if (DeleteCheckBox.IsChecked is not null) {
+        if (trackRow.IsDeletion!=DeleteCheckBox.IsChecked) {
+          isAccepted = false;
+        }
+      }
+
+      //only accept item which match IsDeletion
+      if (PlayListCheckBox.IsChecked is not null) {
+        if (trackRow.IsAddPlaylist!=PlayListCheckBox.IsChecked) {
           isAccepted = false;
         }
       }
@@ -316,13 +446,52 @@ namespace MusicPlayer {
 
 
     private void trackRow_HasSelectedChanged() {
-      var selectedCount = 0;
+      updateDeletionCountTextBox();
+    }
+
+
+    int deletionCount;
+
+
+    private void updateDeletionCountTextBox() {
+      deletionCount = 0;
+      var existPlaylistCount = 0;
+      var addPlaylistCount = 0;
       foreach (var trackRow in trackRows) {
-        if (trackRow.IsTrackSelected) {
-          selectedCount++;
+        if (trackRow.IsDeletion) {
+          deletionCount++;
+        }
+        if (hasPlayListName) {
+          if (trackRow.PlaylistCheckBoxIsEnabled) {
+            if (trackRow.IsAddPlaylist) {
+              addPlaylistCount++;
+            }
+          } else {
+            existPlaylistCount++;
+          }
         }
       }
-      SelectedCountTextBox.Text = selectedCount.ToString();
+      DeletionCountTextBox.Text = $"Del: {deletionCount}, PL exist: {existPlaylistCount}, new: {addPlaylistCount}";
+    }
+
+
+    private void deleteButton_Click(object sender, RoutedEventArgs e) {
+      var result = MessageBox.Show($"Do you want to delete {deletionCount} track(s) ?", "Deletion", MessageBoxButton.YesNo,
+        MessageBoxImage.Question, MessageBoxResult.No);
+      if (result==MessageBoxResult.Yes) {
+        var newTrackRows = new List<TrackRow>(trackRows.Count);
+        foreach (var trackRow in trackRows) {
+          if (trackRow.IsDeletion) {
+            foreach (var playlistsTrack in trackRow.Track.Playlists) {
+              playlistsTrack.Release();
+            }
+            trackRow.Track.Release();
+          } else {
+            newTrackRows.Add(trackRow);
+          }
+        }
+        tracksViewSource.Source = trackRows = newTrackRows;
+      }
     }
 
 
@@ -386,7 +555,7 @@ namespace MusicPlayer {
 
 
     private void addToPlayListButton_Click(object sender, RoutedEventArgs e) {
-      var playListName = AddToPlayListsComboBox.Text;
+      var playListName = AddToPlayListComboBox.Text;
       if (string.IsNullOrEmpty(playListName)) {
         MessageWindow.Show(this, "Provide name for playlist");
         return;
@@ -395,9 +564,11 @@ namespace MusicPlayer {
         playlist = new Playlist(playListName);
       }
       var playlistTracks = new List<Track>();
+      var trackNo = playlist.Tracks.Count;
       foreach (var item in TracksDataGrid.Items) {
         var trackRow = (TrackRow)item;
-        if (trackRow.IsTrackSelected) {
+        if (trackRow.PlaylistCheckBoxIsEnabled &&  trackRow.IsAddPlaylist) {
+          _ = new PlaylistTrack(playlist, trackRow.Track, trackNo++);
           playlistTracks.Add(trackRow.Track);
         }
       }
@@ -407,7 +578,11 @@ namespace MusicPlayer {
 
     private void refreshTrackDataGrid(Playlist playlist) {
       foreach (var item in TracksDataGrid.Items) {
-        ((TrackRow)item).IsTrackSelected = false;
+        var trackRow = (TrackRow)item;
+        trackRow.IsDeletion = false;
+        trackRow.IsAddPlaylist = false;
+        trackRow.UpdatePlayLists();
+        trackRow.UpdatePlayListCheckBoxes(playlist, hasPlayListName);
       }
       tracksViewSource.View.Refresh();
     }

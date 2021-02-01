@@ -17,34 +17,87 @@
       <RowDefinition Height="auto"/>
     </Grid.RowDefinitions>
 
-    <local:FilterStackPanel Grid.Row="0">
-      <TextBlock FontWeight="Bold" Margin="0,3, 3, 3">Filter:</TextBlock>
-      <TextBox Name="FilterTextBox" Width="100"/>
-      <Label Target="{Binding ElementName=LocationsComboBox}" Content="_Locations:"/>
-      <ComboBox x:Name="LocationsComboBox" Width="100"/>
-      <Label Target="{Binding ElementName=PlayListsComboBox}" Content="_PlayLists:"/>
-      <ComboBox x:Name="PlayListsComboBox" Width="100"/>
-      <Label Target="{Binding ElementName=ArtistComboBox}" Content="_Artist:"/>
-      <ComboBox x:Name="ArtistComboBox" Width="100"/>
-      <Label Target="{Binding ElementName=AlbumComboBox}" Content="_Album:"/>
-      <ComboBox x:Name="AlbumComboBox" Width="100"/>
-      <Label Target="{Binding ElementName=GenreComboBox}" Content="_Genre:"/>
-      <ComboBox x:Name="GenreComboBox" Width="80"/>
-      <Label Target="{Binding ElementName=YearComboBox}" Content="_Year:"/>
-      <ComboBox x:Name="YearComboBox" Width="40"/>
-      <Label Target="{Binding ElementName=SelectedCheckBox}" Content="_Selected:"/>
-      <CheckBox x:Name="SelectedCheckBox" IsThreeState="true" IsChecked="{x:Null}" 
-                ToolTip="Filter tracks wether they are marked as selected or not."/>
-      <Button x:Name="ClearButton" Content="_Clear"/>
+    <Grid Grid.Row="0" HorizontalAlignment="Stretch" Background="Violet">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="3"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="9"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="9"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+      <Grid.Resources>
+        <Style TargetType="Label">
+          <Setter Property="Margin" Value="0,0,5,0"/>
+          <Setter Property="HorizontalAlignment" Value="Stretch"/>
+          <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="TextBox">
+          <Setter Property="Margin" Value="0,2,5,5"/>
+          <Setter Property="HorizontalAlignment" Value="Stretch"/>
+          <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="ComboBox">
+          <Setter Property="Margin" Value="0,2,5,5"/>
+          <Setter Property="HorizontalAlignment" Value="Stretch"/>
+          <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="CheckBox">
+          <Setter Property="Margin" Value="0,5,0,0"/>
+        </Style>
+        <Style TargetType="Button">
+          <Setter Property="Margin" Value="0, 0, 5, 3"/>
+          <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+      </Grid.Resources>
 
-      <Button x:Name="SelectAllButton" Content="_Select all" Margin="20,3,5,3"/>
-      <Button x:Name="UnselectAllButton" Content="_Unselect"/>
-      <TextBox x:Name="SelectedCountTextBox" MinWidth="40" IsReadOnly="True"/>
-      <Button x:Name="AddToPlayListButton" Content="_Add PlayList"/>
-      <ComboBox x:Name="AddToPlayListsComboBox" IsEditable="True" Width="100"/>
-
-      <Button x:Name="RenameTrackButton" Content="Re_name"/>
-    </local:FilterStackPanel>
+      <TextBlock Grid.Row="0" Grid.Column="1" FontWeight="Bold">Filter:</TextBlock>
+      <TextBox Grid.Row="1" Grid.Column="1" Name="FilterTextBox"/>
+      <Label Grid.Row="0" Grid.Column="2" Target="{Binding ElementName=LocationsComboBox}" Content="_Locations:" Padding="0"/>
+      <ComboBox Grid.Row="1" Grid.Column="2" x:Name="LocationsComboBox"/>
+      <Label Grid.Row="0" Grid.Column="3" Target="{Binding ElementName=PlayListsComboBox}" Content="_PlayLists:" Padding="0"/>
+      <ComboBox Grid.Row="1" Grid.Column="3" x:Name="PlayListsComboBox"/>
+      <Label Grid.Row="0" Grid.Column="4" Target="{Binding ElementName=ArtistComboBox}" Content="_Artist:" Padding="0"/>
+      <ComboBox Grid.Row="1" Grid.Column="4" x:Name="ArtistComboBox"/>
+      <Label Grid.Row="0" Grid.Column="5" Target="{Binding ElementName=AlbumComboBox}" Content="_Album:" Padding="0"/>
+      <ComboBox Grid.Row="1" Grid.Column="5" x:Name="AlbumComboBox"/>
+      <Label Grid.Row="0" Grid.Column="6" Target="{Binding ElementName=GenreComboBox}" Content="_Genre:" Padding="0"/>
+      <ComboBox Grid.Row="1" Grid.Column="6" x:Name="GenreComboBox"/>
+      <Label Grid.Row="0" Grid.Column="7" Target="{Binding ElementName=YearComboBox}" Content="_Year:" Padding="0"/>
+      <ComboBox Grid.Row="1" Grid.Column="7" x:Name="YearComboBox" Width="40"/>
+      <Label Grid.Row="0" Grid.Column="8" Target="{Binding ElementName=DeleteCheckBox}" Content="_Del:" Padding="0"/>
+      <CheckBox Grid.Row="1" Grid.Column="8" x:Name="DeleteCheckBox" IsThreeState="true" IsChecked="{x:Null}" 
+                  ToolTip="Filter tracks which are marked for deletion or not."/>
+      <Label Grid.Row="0" Grid.Column="9" Target="{Binding ElementName=PlayListCheckBox}" Content="_PList:" Padding="0"/>
+      <CheckBox Grid.Row="1" Grid.Column="9" x:Name="PlayListCheckBox" IsThreeState="true" IsChecked="{x:Null}" 
+                ToolTip="Filter tracks which are marked to be included in the PlayList or not."/>
+      <Button Grid.Row="1" Grid.Column="10" x:Name="ClearButton" Content="_Clear"/>
+      <Button Grid.Row="1" Grid.Column="12" x:Name="SelectAllButton" Content="_Select All"/>
+      <Button Grid.Row="1" Grid.Column="13" x:Name="UnselectAllButton" Content="_Unselect"/>
+      <TextBox Grid.Row="1" Grid.Column="14" x:Name="DeletionCountTextBox" MinWidth="40" IsReadOnly="True"/>
+      <Button Grid.Row="1" Grid.Column="15" x:Name="DeleteButton" Content="_Delete"/>
+      <ComboBox Grid.Row="1" Grid.Column="17" x:Name="AddToPlayListComboBox" IsEditable="True"/>
+      <Button Grid.Row="1" Grid.Column="18" x:Name="AddToPlayListButton" Content="_Add PlayList"/>
+      <Button Grid.Row="1" Grid.Column="19" x:Name="RenameTrackButton" Content="Re_name"/>
+    </Grid>
 
 
     <DataGrid Grid.Row="1" x:Name="TracksDataGrid"
@@ -55,6 +108,14 @@
         <Style x:Key="RightAlignStyle" TargetType="TextBlock">
           <Setter Property="HorizontalAlignment" Value="Right" />
           <Setter Property="Margin" Value="2,0,2,0" />
+        </Style>
+        <DataTemplate x:Key="PlaylistCheckBoxTemplate">
+          <CheckBox IsChecked="{Binding Path=IsAddPlaylist, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" 
+                    IsEnabled="{Binding PlaylistCheckBoxIsEnabled}" Visibility="{Binding PlaylistCheckBoxVisibility}"
+                    VerticalContentAlignment="Center"/>
+        </DataTemplate>
+        <Style x:Key="OneClickCheckBoxStyle" TargetType="CheckBox">
+          <!--overwriting DataGridCheckBoxColumn.ElementStyle makes the CheckBox to respond to every click -->
         </Style>
       </DataGrid.Resources>
       <DataGrid.Columns>
@@ -72,7 +133,9 @@
         <DataGridTextColumn Binding="{Binding Path=Track.Publisher}" Header="Publisher" IsReadOnly="True" Width="100"/>
         <DataGridTextColumn Binding="{Binding Path=Track.Genres}" Header="Genres" IsReadOnly="True" Width="100"/>
         <DataGridTextColumn Binding="{Binding Path=Track.Year}" Header="Year   " IsReadOnly="True" Width="SizeToHeader"/>
-        <DataGridCheckBoxColumn Binding="{Binding Path=IsTrackSelected, UpdateSourceTrigger=PropertyChanged}" Header="Selected"/>
+        <DataGridCheckBoxColumn Binding="{Binding Path=IsDeletion, UpdateSourceTrigger=PropertyChanged}" Header="Delete"
+                                ElementStyle="{StaticResource OneClickCheckBoxStyle}"/>
+        <DataGridTemplateColumn Header="PList" CellTemplate="{StaticResource PlaylistCheckBoxTemplate}"/>
       </DataGrid.Columns>
     </DataGrid>
 

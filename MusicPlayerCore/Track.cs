@@ -7,7 +7,7 @@ using StorageLib;
 namespace MusicPlayer  {
 
 
-  public partial class Track: IStorageItemGeneric<Track> {
+  public partial class Track: IStorageItem<Track> {
 
 
     #region Properties
@@ -58,7 +58,7 @@ namespace MusicPlayer  {
       SkipStart = null;
       SkipEnd = null;
       TitleArtists = Title?.ToLowerInvariant().Trim() + "|" + Artists?.ToLowerInvariant().Trim();
-      playlists = new List<PlaylistTrack>();
+      playlists = new StorageList< PlaylistTrack>();
       Location.AddToTracks(this);
 
       onConstruct();

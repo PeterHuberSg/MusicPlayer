@@ -16,7 +16,7 @@ using StorageLib;
 namespace MusicPlayer  {
 
 
-  public partial class PlaylistTrack: IStorageItemGeneric<PlaylistTrack> {
+  public partial class PlaylistTrack: IStorageItem<PlaylistTrack> {
 
     #region Properties
     //      ----------
@@ -299,8 +299,8 @@ namespace MusicPlayer  {
       if (Key<0) {
         throw new Exception($"PlaylistTrack.Release(): PlaylistTrack '{this}' is not stored in DC.Data, key is {Key}.");
       }
-      onReleased();
       DC.Data._PlaylistTracks.Remove(Key);
+      onReleased();
     }
     partial void onReleased();
 

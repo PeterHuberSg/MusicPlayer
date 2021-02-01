@@ -35,6 +35,13 @@ namespace MusicPlayer {
     }
 
 
+    static string? lastPath;
+    static string? lastAlbum;
+    static string? lastGenres;
+    static int? lastYear;
+
+
+
     readonly Track? track;
     readonly Action<Track>? refreshOwner;
 
@@ -50,12 +57,24 @@ namespace MusicPlayer {
       SaveButton.Click += saveButton_Click;
       Closed += trackRenameWindow_Closed;
 
+      if (track is null || lastPath!=new FileInfo(track.FullFileName).DirectoryName) {
+        lastPath = null;
+        lastAlbum = null;
+        lastGenres = null;
+        lastYear = null;
+      }
       if (track is not null) {
         FileNameTextBox.Text = track.FileName;
         TitleTextBox.Text = track.Title;
         TitleTextBoxNew.Initialise(track.Title);
         AlbumTextBox.Text = track.Album;
-        AlbumTextBoxNew.Initialise(track.Album);
+        if (track.Album is not null) {
+          AlbumTextBoxNew.Initialise(track.Album);
+        } else if (lastAlbum is not null) {
+          AlbumTextBoxNew.Initialise(lastAlbum);
+        } else{
+          AlbumTextBoxNew.Initialise(null);
+        }
         AlbumTrackTextBox.Text = track.AlbumTrack.ToString();
         AlbumTrackTextBoxNew.Initialise(track.AlbumTrack);
         ArtistsTextBox.Text = track.Artists;
@@ -81,16 +100,33 @@ namespace MusicPlayer {
           genreIndex = null;
           text = track.Genres;
         }
-        GenreEditComboBox.Initialise(text, genreIndex);
-        GenreEditComboBox.Text = track.Genres;
+        if (text is not null || genreIndex is not null) {
+          GenreEditComboBox.Initialise(text, genreIndex);
+        } else if (lastGenres is not null) {
+          GenreEditComboBox.Initialise(lastGenres, null);
+        } else {
+          GenreEditComboBox.Initialise(null, null);
+        }
+        //GenreEditComboBox.Text = track.Genres;
         PublisherTextBox.Text = track.Publisher;
         PublisherTextBoxNew.Initialise(track.Publisher);
         YearTextBox.Text = track.Year.ToString();
-        YearTextBoxNew.Initialise(track.Year);
+        if (track.Year is not null) {
+          YearTextBoxNew.Initialise(track.Year);
+        } else if (lastYear is not null) {
+          YearTextBoxNew.Initialise(lastYear);
+        } else {
+          YearTextBoxNew.Initialise(null);
+        }
 
         MainWindow.Register(this, $"Rename {track.FileName}");
         updateSaveButtonIsEnabled();
       } else {
+        if (lastPath is not null) {
+          AlbumTextBoxNew.Initialise(lastAlbum);
+          GenreEditComboBox.Initialise(lastGenres, null);
+          YearTextBoxNew.Initialise(lastYear);
+        }
         MainWindow.Register(this, "Rename Track");
       }
     }
@@ -158,6 +194,11 @@ namespace MusicPlayer {
       fileProperties.Tag.Publisher = PublisherTextBoxNew.Text.Length == 0 ? null : PublisherTextBoxNew.Text;
       fileProperties.Tag.Year = (uint)(YearTextBoxNew.IntValue??0);
       fileProperties.Save();
+
+      lastPath = fileInfo.DirectoryName;
+      lastAlbum = fileProperties.Tag.Album;
+      lastGenres = GenreEditComboBox.Text;
+      lastYear = YearTextBoxNew.IntValue;
 
       if (refreshOwner is not null) {
         track.Update(

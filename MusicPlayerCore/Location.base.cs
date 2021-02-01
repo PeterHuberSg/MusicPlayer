@@ -16,7 +16,7 @@ using StorageLib;
 namespace MusicPlayer  {
 
 
-  public partial class Location: IStorageItemGeneric<Location> {
+  public partial class Location: IStorageItem<Location> {
 
     #region Properties
     //      ----------
@@ -42,8 +42,8 @@ namespace MusicPlayer  {
     public string Name { get; private set; }
 
 
-    public IReadOnlyList<Track> Tracks => tracks;
-    readonly List<Track> tracks;
+    public IStorageReadOnlyList<Track> Tracks => tracks;
+    readonly StorageList<Track> tracks;
 
 
     /// <summary>
@@ -84,7 +84,7 @@ namespace MusicPlayer  {
       Path = path;
       PathLower = Path.ToLowerInvariant();
       Name = name;
-      tracks = new List<Track>();
+      tracks = new StorageList<Track>();
       onConstruct();
       if (DC.Data.IsTransaction) {
         DC.Data.AddTransaction(new TransactionItem(0,TransactionActivityEnum.New, Key, this));
@@ -121,7 +121,7 @@ namespace MusicPlayer  {
       PathLower = Path.ToLowerInvariant();
       DC.Data._LocationsByPathLower.Add(PathLower, this);
       Name = csvReader.ReadString();
-      tracks = new List<Track>();
+      tracks = new StorageList<Track>();
       onCsvConstruct();
     }
     partial void onCsvConstruct();
@@ -275,8 +275,8 @@ namespace MusicPlayer  {
         }
       }
       DC.Data._LocationsByPathLower.Remove(PathLower);
-      onReleased();
       DC.Data._Locations.Remove(Key);
+      onReleased();
     }
     partial void onReleased();
 
@@ -375,7 +375,8 @@ namespace MusicPlayer  {
         $" Path: {Path}," +
         $" PathLower: {PathLower}," +
         $" Name: {Name}," +
-        $" Tracks: {Tracks.Count};";
+        $" Tracks: {Tracks.Count}," +
+        $" TracksStored: {Tracks.CountStoredItems};";
       onToString(ref returnString);
       return returnString;
     }
