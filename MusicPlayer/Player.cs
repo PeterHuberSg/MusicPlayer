@@ -26,7 +26,7 @@ namespace MusicPlayer {
 
     #pragma warning disable CA2211 // Non-constant fields should not be visible
     public static Player? Current;
-#pragma warning restore CA2211 // Non-constant fields should not be visible
+    #pragma warning restore CA2211
 
 
     public Duration NaturalDuration => mediaPlayer.NaturalDuration;
@@ -60,6 +60,7 @@ namespace MusicPlayer {
 
 
     private void reportStateChange() {
+      //trace($"Stat {mediaPlayer.Position}, {mediaPlayer.Source}");
       if (hasStateChanged) {
         hasStateChanged = false;
         StateChanged?.Invoke(this);
@@ -123,8 +124,12 @@ namespace MusicPlayer {
     }
 
 
+    //DateTime mediaOpenedTime;
+
+
     private void mediaPlayer_MediaOpened(object? sender, EventArgs e) {
       trace("MediaOpened");
+      //mediaOpenedTime = DateTime.Now;
       PlayerControl?.SetSelectedTrack(Track!);
 
       switch (PlayerState) {
@@ -180,6 +185,7 @@ namespace MusicPlayer {
       System.Diagnostics.Debugger.Break();
     }
 
+
     private void mediaPlayer_MediaEnded(object? sender, EventArgs e) {
       trace("MediaEnded");
       dispatcherTimer.Stop();
@@ -222,6 +228,7 @@ namespace MusicPlayer {
 
 
     private void dispatcherTimer_Tick(object? sender, EventArgs e) {
+      //trace($"Tick {mediaPlayer.Position}, {mediaPlayer.Source}");
       PositionChanged?.Invoke(this);
     }
     #endregion
@@ -296,11 +303,16 @@ namespace MusicPlayer {
     }
 
 
+    //static TimeSpan mediaOpenedTimeDelay = new TimeSpan(0, 0, 0, 0, 500);
     public void SetPosition(TimeSpan positionTimeSpan) {
+      //if (DateTime.Now-mediaOpenedTime<mediaOpenedTimeDelay) {
+      //  System.Diagnostics.Debugger.Break();
+      //}
       if (mediaPlayer.Position!=positionTimeSpan) {
         mediaPlayer.Position = positionTimeSpan;
         PositionChanged?.Invoke(this);
       }
+      //trace($"SetP {mediaPlayer.Position}, {mediaPlayer.Source}");
     }
 
 

@@ -29,7 +29,7 @@ namespace MusicPlayer {
     public List<PlaylistTrack> Playlists;
   }
 
-
+  [StorageClass]
   public class Location {
     public string Path;
     /// <summary>

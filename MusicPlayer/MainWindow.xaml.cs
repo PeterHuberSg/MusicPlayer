@@ -137,11 +137,11 @@ namespace MusicPlayer {
       //if (dataGridCell.Column.DisplayIndex==10) return;
 
       //this.TrackPlayer.Play(((TrackRow)TracksDataGrid.Items[selectedIndex]).Track);
-      PlaylistWindow.Show(this, ((Playlist)PlayListsDataGrid.Items[selectedIndex]), null, refreshPlaylistDataGrid);
+      PlaylistWindow.Show(this, ((Playlist)PlayListsDataGrid.Items[selectedIndex]), null, RefreshPlaylistDataGrid);
     }
 
 
-    private void refreshPlaylistDataGrid(Playlist playlist) {
+    public void RefreshPlaylistDataGrid(Playlist playlist) {
       refreshPlaylistDataGrid();
     }
 

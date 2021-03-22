@@ -1,19 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Windows.Shapes;
 
 
@@ -24,6 +16,7 @@ namespace MusicPlayer {
   /// Interaction logic for PlayerControl.xaml
   /// </summary>
   public partial class PlayerControl: UserControl {
+
 
     #region Properties
     //      ----------
@@ -45,12 +38,10 @@ namespace MusicPlayer {
 
       PlayButton.Click += playButton_Click;
       NextButton.Click += nextButton_Click;
-      PauseToggleButton.Checked += pauseToggleButton_Checked;
-      PauseToggleButton.Unchecked += pauseToggleButton_Unchecked;
-      StopButton.Click += stopButton_Click;
-      MuteToggleButton.Checked += muteToggleButton_Checked;
-      MuteToggleButton.Unchecked += muteToggleButton_Unchecked;
-      VolumeScrollBar.ValueChanged += volumeScrollBar_ValueChanged;
+      //RepeatButton.Click += RepeatButton_Click;
+      RandomButton.Click += RandomButton_Click;
+      MuteButton.Click += muteButton_Click;
+      VolumeSlider.ValueChanged += volumeSlider_ValueChanged;
       Loaded += playerControl_Loaded;
       Unloaded += playerControl_Unloaded;
 
@@ -66,21 +57,22 @@ namespace MusicPlayer {
 
     #region EventHandlers
     //      -------------
-    RepeatButton repeatButtonLeft;
-    RepeatButton repeatButtonRight;
+    RepeatButton scrollRepeatButtonLeft;
+    RepeatButton scrollRepeatButtonRight;
 
 
     private void playerControl_Loaded(object sender, RoutedEventArgs e) {
       PositionScrollBar.ValueChanged += positionScrollBar_ValueChanged;
       PositionScrollBar.Track.Thumb.DragStarted += thumb_DragStarted;
       PositionScrollBar.Track.Thumb.DragCompleted += thumb_DragCompleted;
-      PositionScrollBar.Track.Thumb.Background=Brushes.Black;
-      repeatButtonLeft = (RepeatButton)VisualTreeHelper.GetChild(PositionScrollBar.Track, 0);
-      repeatButtonRight = (RepeatButton)VisualTreeHelper.GetChild(PositionScrollBar.Track, 1);
-      repeatButtonLeft.PreviewMouseUp += repeatButtonLeft_PreviewMouseUp;
-      repeatButtonRight.PreviewMouseUp += repeatButtonRight_PreviewMouseUp;
+      PositionScrollBar.Track.Thumb.Background=PlayerButton.ButtonSymbolFillBrush;
+
+      scrollRepeatButtonLeft = (RepeatButton)VisualTreeHelper.GetChild(PositionScrollBar.Track, 0);
+      scrollRepeatButtonRight = (RepeatButton)VisualTreeHelper.GetChild(PositionScrollBar.Track, 1);
+      scrollRepeatButtonLeft.PreviewMouseUp += scrollRepeatButtonLeft_PreviewMouseUp;
+      scrollRepeatButtonRight.PreviewMouseUp += scrollRepeatButtonRight_PreviewMouseUp;
       var thumbRectangle = (Rectangle)VisualTreeHelper.GetChild(PositionScrollBar.Track.Thumb, 0);
-      thumbRectangle.Fill = Brushes.DarkViolet;
+      thumbRectangle.Fill = PlayerButton.ButtonSymbolFillBrush;
     }
 
 
@@ -89,8 +81,31 @@ namespace MusicPlayer {
         System.Diagnostics.Debugger.Break();
         return;
       }
-      Player.Current?.Play(this, getCurrentTrack());
+      if (PlayButton.IsPressed) {
+        Player.Current?.Play(this, getCurrentTrack());
+      } else {
+        Player.Current?.Pause();
+      }
     }
+    //private void pauseToggleButton_Checked(object sender, RoutedEventArgs e) {
+    //  if (isNoPauseButtonEvent) return;
+
+    //  Player.Current?.Pause();
+    //}
+
+
+    //private void pauseToggleButton_Unchecked(object sender, RoutedEventArgs e) {
+    //  if (isNoPauseButtonEvent) return;
+
+    //  Player.Current?.Resume();
+    //}
+
+
+    //private void stopButton_Click(object sender, RoutedEventArgs e) {
+    //  Player.Current?.Stop();
+    //}
+//////////////////////////////////////////
+
 
 
     private void nextButton_Click(object sender, RoutedEventArgs e) {
@@ -104,39 +119,40 @@ namespace MusicPlayer {
     bool isNoPauseButtonEvent;
 
 
-    private void pauseToggleButton_Checked(object sender, RoutedEventArgs e) {
-      if (isNoPauseButtonEvent) return;
 
-      Player.Current?.Pause();
+    private void RandomButton_Click(object sender, RoutedEventArgs e) {
     }
 
 
-    private void pauseToggleButton_Unchecked(object sender, RoutedEventArgs e) {
-      if (isNoPauseButtonEvent) return;
-
-      Player.Current?.Resume();
-    }
+    //private void RepeatButton_Click(object sender, RoutedEventArgs e) {
+    //}
 
 
-    private void stopButton_Click(object sender, RoutedEventArgs e) {
-      Player.Current?.Stop();
-    }
-
-
-    private void muteToggleButton_Checked(object sender, RoutedEventArgs e) {
-      Player.Current?.Mute();
-    }
-
-
-    private void muteToggleButton_Unchecked(object sender, RoutedEventArgs e) {
-      Player.Current?.UnMute();
+    private void muteButton_Click(object sender, RoutedEventArgs e) {
+      if (MuteButton.IsPressed) {
+        Player.Current?.Mute();
+      } else {
+        Player.Current?.UnMute();
+      }
     }
 
 
     private void positionScrollBar_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
+      //System.Diagnostics.Debug.WriteLine($"ScrollBarValueChanged: {PositionScrollBar.Value} {PositionScrollBar.Maximum} {TimeSpan.FromMilliseconds(PositionScrollBar.Value)} {Player.Current?.Position}");
+      //if (isNewTrackStartDetected) {
+      //  //System.Diagnostics.Debugger.Break();
+      //  System.Diagnostics.Debug.WriteLine("ScrollBarValueChanged & isNewTrackStartDetected");
+      //}
+
       if (isThumbTragging) {
         var position = TimeSpan.FromMilliseconds(PositionScrollBar.Value);
-        PositionTextBox.Text = $"{(int)position.TotalMinutes}:{position.Seconds:00}";
+        actualPositionText = $" {(int)position.TotalMinutes}:{position.Seconds:00} of";
+        updateInfoTextBox(Player.Current!);
+      } else if (!isPositionChangedByPlayer && !isScrolling && !isNewTrackStartDetected) {
+        //scrollLineButton of Scrollbar was pressed.
+        if (PositionScrollBar.Value<PositionScrollBar.Maximum*.98) {
+          Player.Current?.SetPosition(TimeSpan.FromMilliseconds(PositionScrollBar.Value));
+        }
       }
     }
 
@@ -155,67 +171,89 @@ namespace MusicPlayer {
     }
 
 
-    private void repeatButtonLeft_PreviewMouseUp(object sender, MouseButtonEventArgs e) {
-      var mousePosition = e.GetPosition(repeatButtonLeft);
-      if (mousePosition.X>=0 && mousePosition.X<=repeatButtonLeft.ActualWidth &&
-        mousePosition.Y>=0 && mousePosition.Y<=repeatButtonLeft.ActualHeight) 
-      {
-        PositionScrollBar.Value = PositionScrollBar.Value * mousePosition.X / repeatButtonLeft.ActualWidth;
+    bool isScrolling;
+
+
+    private void scrollRepeatButtonLeft_PreviewMouseUp(object sender, MouseButtonEventArgs e) {
+      var mousePosition = e.GetPosition(scrollRepeatButtonLeft);
+      if (mousePosition.X>=0 && mousePosition.X<=scrollRepeatButtonLeft.ActualWidth &&
+        mousePosition.Y>=0 && mousePosition.Y<=scrollRepeatButtonLeft.ActualHeight) {
+        isScrolling = true;
+        PositionScrollBar.Value = PositionScrollBar.Value * mousePosition.X / scrollRepeatButtonLeft.ActualWidth;
+        isScrolling = false;
         Player.Current?.SetPosition(TimeSpan.FromMilliseconds(PositionScrollBar.Value));
       }
     }
 
 
-    private void repeatButtonRight_PreviewMouseUp(object sender, MouseButtonEventArgs e) {
-      var mousePosition = e.GetPosition(repeatButtonRight);
-      if (mousePosition.X>=0 && mousePosition.X<=repeatButtonRight.ActualWidth &&
-        mousePosition.Y>=0 && mousePosition.Y<=repeatButtonRight.ActualHeight) 
-      {
-        PositionScrollBar.Value += (PositionScrollBar.Maximum - PositionScrollBar.Value) * mousePosition.X / repeatButtonRight.ActualWidth;
+    private void scrollRepeatButtonRight_PreviewMouseUp(object sender, MouseButtonEventArgs e) {
+      var mousePosition = e.GetPosition(scrollRepeatButtonRight);
+      if (mousePosition.X>=0 && mousePosition.X<=scrollRepeatButtonRight.ActualWidth &&
+        mousePosition.Y>=0 && mousePosition.Y<=scrollRepeatButtonRight.ActualHeight) {
+        isScrolling = true;
+        PositionScrollBar.Value += (PositionScrollBar.Maximum - PositionScrollBar.Value) * mousePosition.X / scrollRepeatButtonRight.ActualWidth;
+        isScrolling = false;
         Player.Current?.SetPosition(TimeSpan.FromMilliseconds(PositionScrollBar.Value));
       }
     }
 
 
-    private void volumeScrollBar_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
+    private void volumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
       if (!isVolumeFeedback) {
-        Player.Current?.SetVolume(VolumeScrollBar.Value);
+        Player.Current?.SetVolume(VolumeSlider.Value);
       }
+    }
+
+
+    private void player_StateChanged(Player player) {
+      updateInfoTextBox(player);
+      SelectedTrack = player.Track;
+
+      if (PlayButton.IsPressed != (player.PlayerState==PlayerStateEnum.Playing || player.PlayerState==PlayerStateEnum.Starting)) {
+        isNoPauseButtonEvent = true;
+        PlayButton.IsPressed = !PlayButton.IsPressed;
+        isNoPauseButtonEvent = false;
+      }
+      //isNoPauseButtonEvent = true;
+      //if (player.PlayerState==PlayerStateEnum.Paused) {
+        
+      //  PauseToggleButton.Content = "_Resume";
+      //  PauseToggleButton.IsChecked = true;
+      //} else {
+      //  PauseToggleButton.Content = "_Pause";
+      //  PauseToggleButton.IsChecked = false;
+      //}
+      //isNoPauseButtonEvent = false;
+      //PauseToggleButton.IsEnabled =
+      //  player.PlayerState==PlayerStateEnum.Playing || player.PlayerState==PlayerStateEnum.Paused;
+
+      //StopButton.IsEnabled = player.PlayerState!=PlayerStateEnum.Idle;
+
     }
 
 
     TimeSpan oldDuration = TimeSpan.MaxValue;
+    string durationText;
+    bool isNewTrackStartDetected;
 
 
-    private void player_StateChanged(Player obj) {
-      Player player = Player.Current!;
-
-      TrackTitleTextBox.Text = player.Track?.Title;
-      SelectedTrack = player.Track;
-
-      isNoPauseButtonEvent = true;
-      if (player.PlayerState==PlayerStateEnum.Paused) {
-        PauseToggleButton.Content = "_Resume";
-        PauseToggleButton.IsChecked = true;
+    private void updateInfoTextBox(Player player) {
+      if (player.Track is null) {
+        InfoTextBox.Text = "";
       } else {
-        PauseToggleButton.Content = "_Pause";
-        PauseToggleButton.IsChecked = false;
-      }
-      isNoPauseButtonEvent = false;
-      PauseToggleButton.IsEnabled = 
-        player.PlayerState==PlayerStateEnum.Playing || player.PlayerState==PlayerStateEnum.Paused;
-
-      StopButton.IsEnabled = player.PlayerState!=PlayerStateEnum.Idle;
-
-      var duration = player.NaturalDuration.HasTimeSpan ? player.NaturalDuration.TimeSpan : TimeSpan.FromTicks(0);
-      if (oldDuration!=duration) {
-        oldDuration = duration;
-        if (duration.Ticks==0) {
-          DurationTextBox.Text = "";
-        } else {
-          DurationTextBox.Text = $"{(int)duration.TotalMinutes}:{duration.Seconds:00}";
+        var duration = player.NaturalDuration.HasTimeSpan ? player.NaturalDuration.TimeSpan : TimeSpan.FromTicks(0);
+        if (oldDuration!=duration) {
+          oldDuration = duration;
+          durationText =duration.Ticks==0 ? "" : $" {(int)duration.TotalMinutes}:{duration.Seconds:00}";
+          isNewTrackStartDetected = true;
+          PositionScrollBar.Value = 0; //needed, otherwise changing PositionScrollBar.Maximum will PositionScrollBar have shortly wrong Value
+          PositionScrollBar.Maximum = duration.TotalMilliseconds;
+          //PositionScrollBar.LargeChange = duration.TotalMilliseconds/3;
+          //PositionScrollBar.SmallChange = duration.TotalMilliseconds/20;
+          isNewTrackStartDetected = false;
         }
-        PositionScrollBar.Maximum = duration.TotalMilliseconds;
+
+        InfoTextBox.Text = $"{player.Track.Title}{actualPositionText}{durationText}";
       }
     }
 
@@ -239,15 +277,18 @@ namespace MusicPlayer {
     //}
 
 
-    private void player_PositionChanged(Player obj) {
+    string actualPositionText;
+    bool isPositionChangedByPlayer;
+
+
+    private void player_PositionChanged(Player player) {
       if (!isThumbTragging) {
-        var position = Player.Current!.Position;
-        if (position.Ticks>0) {
-          PositionTextBox.Text = $"{(int)position.TotalMinutes}:{position.Seconds:00}";
-        } else {
-          PositionTextBox.Text = "";
-        }
+        var position = player.Position;
+        actualPositionText = position.Ticks>0 ? $" {(int)position.TotalMinutes}:{position.Seconds:00} of" : "";
+        updateInfoTextBox(player);
+        isPositionChangedByPlayer = true;
         PositionScrollBar.Value = position.TotalMilliseconds;
+        isPositionChangedByPlayer = false;
       }
     }
 
@@ -257,15 +298,16 @@ namespace MusicPlayer {
 
     private void player_VolumeChanged(Player obj) {
       var volume = Player.Current!.Volume;
-      if (volume==0) {
-        MuteToggleButton.Content = "Un_Mute";
-        MuteToggleButton.IsChecked = true;
-      } else {
-        MuteToggleButton.Content = "_Mute";
-        MuteToggleButton.IsChecked = false;
-      }
+      MuteButton.IsPressed = volume==0;
+      //if (volume==0) {
+      //  MuteToggleButton.Content = "Un_Mute";
+      //  MuteToggleButton.IsChecked = true;
+      //} else {
+      //  MuteToggleButton.Content = "_Mute";
+      //  MuteToggleButton.IsChecked = false;
+      //}
       isVolumeFeedback = true;
-      VolumeScrollBar.Value = volume;
+      VolumeSlider.Value = volume;
       isVolumeFeedback = false;
     }
 
@@ -291,12 +333,9 @@ namespace MusicPlayer {
     internal void Init(Func<Track> getCurrentTrack, Func<Track> getNextTrack) {
       this.getCurrentTrack = getCurrentTrack;
       this.getNextTrack = getNextTrack;
-      //Tracks = tracks;
-      //SelectedTrackId = selectedTrackId;
-      //SelectedTrack = tracks[selectedTrackId];
-      PlayButton.IsEnabled = true;
+      //PlayButton.IsEnabled = true;
       NextButton.IsEnabled = true;
-      MuteToggleButton.IsEnabled = true;
+      //MuteButton.IsEnabled = true;
     }
 
 

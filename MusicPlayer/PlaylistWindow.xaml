@@ -30,61 +30,175 @@
 
       <TextBox  DockPanel.Dock="Right" x:Name="TracksCountTextBox" IsReadOnly="true" Margin="4,2" VerticalAlignment="Center" Width="40"/>
       <Label DockPanel.Dock="Right" Content="Tracks Count:" Target="{Binding ElementName=TracksCountTextBox}" Margin="4,2"/>
-      
+
       <TextBox  Grid.Row="0" Grid.Column="1" x:Name="PlaylistNameTextBox" Margin="4,2"/>
     </DockPanel>
 
-    <local:FilterStackPanel Grid.Row="1">
-      <TextBlock FontWeight="Bold" Margin="0,3, 3, 3">Filter:</TextBlock>
-      <TextBox Name="FilterTextBox" Width="100"/>
-      <Label Target="{Binding ElementName=LocationsComboBox}" Content="_Locations:"/>
-      <ComboBox x:Name="LocationsComboBox" Width="100"/>
-      <Label Target="{Binding ElementName=ArtistComboBox}" Content="_Artist:"/>
-      <ComboBox x:Name="ArtistComboBox" Width="100"/>
-      <Label Target="{Binding ElementName=AlbumComboBox}" Content="_Album:"/>
-      <ComboBox x:Name="AlbumComboBox" Width="100"/>
-      <Label Target="{Binding ElementName=GenreComboBox}" Content="_Genre:"/>
-      <ComboBox x:Name="GenreComboBox" Width="100"/>
-      <Label Target="{Binding ElementName=YearComboBox}" Content="_Year:"/>
-      <ComboBox x:Name="YearComboBox" Width="40"/>
-      <Label Target="{Binding ElementName=SelectedCheckBox}" Content="_Selected:"/>
-      <CheckBox x:Name="SelectedCheckBox" IsThreeState="true" IsChecked="{x:Null}" 
-                ToolTip="Filter tracks wether they are marked as selected or not."/>
-      <Button x:Name="ClearButton" Content="_Clear"/>
+    <Grid Grid.Row="1" HorizontalAlignment="Stretch" Background="Violet">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="3"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="9"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="9"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+      <Grid.Resources>
+        <Style TargetType="Label">
+          <Setter Property="Margin" Value="3,0,5,0"/>
+          <Setter Property="Padding" Value="0"/>
+          <Setter Property="HorizontalAlignment" Value="Left"/>
+          <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="TextBox">
+          <Setter Property="Margin" Value="0,0,2,2"/>
+          <Setter Property="HorizontalAlignment" Value="Stretch"/>
+          <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="ComboBox">
+          <Setter Property="Margin" Value="2,0,2,3"/>
+          <Setter Property="HorizontalAlignment" Value="Stretch"/>
+          <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="CheckBox">
+          <Setter Property="HorizontalAlignment" Value="Center"/>
+          <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="Button">
+          <Setter Property="Margin" Value="2,0,2,2"/>
+          <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+      </Grid.Resources>
 
-      <Button x:Name="SelectAllButton" Content="_Select all" Margin="40,3,5,3"/>
-      <Button x:Name="UnselectAllButton" Content="_Unselect"/>
-      <TextBox x:Name="SelectedCountTextBox" MinWidth="40" IsReadOnly="True"/>
-      <Button x:Name="NewPlayListButton" Content="_New PlayList"/>
-    </local:FilterStackPanel>
+      <Rectangle Grid.Row="0" Grid.Column="0" Grid.RowSpan="2" Grid.ColumnSpan="10" Fill="LightCoral"/>
+      <TextBlock Grid.Row="0" Grid.Column="1" FontWeight="Bold">Filter:</TextBlock>
+      <TextBox Grid.Row="1" Grid.Column="1" Name="FilterTextBox"/>
+      <Label Grid.Row="0" Grid.Column="2" Target="{Binding ElementName=ArtistComboBox}" Content="_Artist:"/>
+      <ComboBox Grid.Row="1" Grid.Column="2" x:Name="ArtistComboBox"/>
+      <Label Grid.Row="0" Grid.Column="3" Target="{Binding ElementName=AlbumComboBox}" Content="_Album:"/>
+      <ComboBox Grid.Row="1" Grid.Column="3" x:Name="AlbumComboBox"/>
+      <Label Grid.Row="0" Grid.Column="4" Target="{Binding ElementName=GenreComboBox}" Content="_Genre:"/>
+      <ComboBox Grid.Row="1" Grid.Column="4" x:Name="GenreComboBox"/>
+      <Label Grid.Row="0" Grid.Column="5" Target="{Binding ElementName=YearComboBox}" Content="_Year:"/>
+      <ComboBox Grid.Row="1" Grid.Column="5" x:Name="YearComboBox" Width="40"/>
+      <Label Grid.Row="0" Grid.Column="6" Target="{Binding ElementName=LocationsComboBox}" Content="_Locations:"/>
+      <ComboBox Grid.Row="1" Grid.Column="6" x:Name="LocationsComboBox"/>
+      <Label Grid.Row="0" Grid.Column="7" Target="{Binding ElementName=RemoveCheckBox}" Content="_Rem:" Padding="0"/>
+      <CheckBox Grid.Row="1" Grid.Column="7" x:Name="RemoveCheckBox" IsThreeState="true" IsChecked="{x:Null}" 
+                  ToolTip="Filter tracks which are marked for removal from playlist or not."/>
+      <Label Grid.Row="0" Grid.Column="8" Target="{Binding ElementName=PlaylistCheckBox}" Content="_PList:" Padding="0"/>
+      <CheckBox Grid.Row="1" Grid.Column="8" x:Name="PlaylistCheckBox" IsThreeState="true" IsChecked="{x:Null}" 
+                ToolTip="Filter tracks which are marked to be included in a new Playlist or not."/>
+      <Button Grid.Row="1" Grid.Column="9" x:Name="ClearButton" Content="_Clear"
+              ToolTip="Clears all filter settings and displays all tracks."/>
 
-    <DataGrid Grid.Row="2" x:Name="TracksDataGrid"
+      <TextBox Grid.Row="0" Grid.Column="11" Grid.ColumnSpan="3" x:Name="SelectedCountTextBox" IsReadOnly="True"
+               VerticalAlignment="Bottom"/>
+      <Button Grid.Row="1" Grid.Column="11" x:Name="RemoveAllButton" Content="_Remove all"
+              ToolTip="Marks all tracks for removal from the playlist. Click on the button 'Execute Removal' to actually remove the tracks."/>
+      <Button Grid.Row="1" Grid.Column="12" x:Name="PLAllButton" Content="_PL all"
+              ToolTip="Marks all tracks to be included into the other playlist."/>
+      <Button Grid.Row="1" Grid.Column="13" x:Name="UnselectAllButton" Content="_Unselect"
+              ToolTip="Unselects all tracks selected for removal or inclusion to the other playlist."/>
+      <Button Grid.Row="0" Grid.Column="14" Grid.RowSpan="2" x:Name="RemoveButton" Content="Execute&#10;_Remove" 
+              VerticalAlignment="Stretch" Margin="2,1,2,4" ToolTip="Remove the tracks marked for removal from this playlist."/>
+
+      <Rectangle Grid.Row="0" Grid.Column="16" Grid.RowSpan="2" Grid.ColumnSpan="2" Fill="LightCoral"/>
+      <Label Grid.Row="0" Grid.Column="16" Target="{Binding ElementName=AddToPlaylistComboBox}" Content="_Playlist:"/>
+      <ComboBox Grid.Row="1" Grid.Column="16" x:Name="AddToPlaylistComboBox" IsEditable="True"
+                ToolTip="Select an existing or enter a new playlist to which the tracks should get added."/>
+      <Button Grid.Row="1" Grid.Column="17" x:Name="AddToPlaylistButton" Content="_Add to Playlist"
+              ToolTip="Add the tracks marked in the PList column to the selected playlist."/>
+    </Grid>
+
+    <Grid Grid.Row="2">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+        <RowDefinition Height="*"/>
+        <RowDefinition Height="*"/>
+        <RowDefinition Height="*"/>
+        <RowDefinition Height="*"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="auto"/>
+      </Grid.ColumnDefinitions>
+      <DataGrid Grid.Row="0" Grid.Column="0" Grid.RowSpan="7" x:Name="TracksDataGrid"
               DataContext="{StaticResource TracksViewSource}" ItemsSource="{Binding}" AutoGenerateColumns="False" 
               EnableRowVirtualization="True" RowDetailsVisibilityMode="Collapsed" EnableColumnVirtualization="False"
               AllowDrop="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False">
-      <DataGrid.Resources>
-        <Style x:Key="RightAlignStyle" TargetType="TextBlock">
-          <Setter Property="HorizontalAlignment" Value="Right" />
-          <Setter Property="Margin" Value="2,0,2,0" />
-        </Style>
-      </DataGrid.Resources>
-      <DataGrid.Columns>
-        <DataGridTextColumn Binding="{Binding Path=No, StringFormat=N0}" Header="#"  
+        <DataGrid.Resources>
+          <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="Blue"/>
+          <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="Blue"/>
+          <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="White"/>
+          <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="White"/>
+          <Style x:Key="RightAlignStyle" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="Margin" Value="2,0,2,0" />
+          </Style>
+          <Style x:Key="OneClickCheckBoxStyle" TargetType="CheckBox">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+          </Style>
+        </DataGrid.Resources>
+        <DataGrid.RowStyle>
+          <Style TargetType="DataGridRow">
+            <Setter Property="Background" Value="{Binding RelativeSource={RelativeSource Self}, Path=Item.RowBackground}"/>
+          </Style>
+        </DataGrid.RowStyle>
+        <DataGrid.Columns>
+          <DataGridTextColumn Binding="{Binding Path=PlaylistTrackNo, StringFormat=N0, Mode=OneWay}" Header="#"  
                             ElementStyle="{StaticResource RightAlignStyle}" IsReadOnly="True" Width="45"/>
-        <DataGridTextColumn Binding="{Binding Path=Track.Location.Name}" Header="Location" IsReadOnly="True" Width="200"/>
-        <DataGridTextColumn Binding="{Binding Path=Track.Artists}" Header="Artists" IsReadOnly="True" Width="100"/>
-        <DataGridTextColumn Binding="{Binding Path=Track.Album}" Header="Album" IsReadOnly="True" Width="200"/>
-        <DataGridTextColumn Binding="{Binding Path=Track.AlbumTrack}" Header="Track" IsReadOnly="True" Width="30"/>
-        <DataGridTextColumn Binding="{Binding Path=Track.Title}" Header="Title" IsReadOnly="True" Width="200"/>
-        <DataGridTextColumn Binding="{Binding Path=Track.Duration, StringFormat=mm\\:ss}" Header="Duration" 
+          <DataGridTextColumn Binding="{Binding Path=PlaylistTrackNoOld, StringFormat=N0}" Header="Old" IsReadOnly="True" 
+                              Width="45"/>
+          <DataGridTextColumn Binding="{Binding Path=Track.Title}" Header="Title" IsReadOnly="True" Width="3*"/>
+          <DataGridTextColumn Binding="{Binding Path=Track.Duration, StringFormat=mm\\:ss}" Header="Duration" 
                             ElementStyle="{StaticResource RightAlignStyle}" IsReadOnly="True" Width="SizeToHeader"/>
-        <DataGridTextColumn Binding="{Binding Path=Track.Composers}" Header="Composers" IsReadOnly="True" Width="100"/>
-        <DataGridTextColumn Binding="{Binding Path=Track.Publisher}" Header="Publisher" IsReadOnly="True" Width="100"/>
-        <DataGridTextColumn Binding="{Binding Path=Track.Genres}" Header="Genres" IsReadOnly="True" Width="100"/>
-        <DataGridTextColumn Binding="{Binding Path=Track.Year}" Header="Year   " IsReadOnly="True" Width="SizeToHeader"/>
-        <DataGridCheckBoxColumn Binding="{Binding Path=IsSelected, UpdateSourceTrigger=PropertyChanged}" Header="Selected"/>
-      </DataGrid.Columns>
-    </DataGrid>
+          <DataGridTextColumn Binding="{Binding Path=Track.Artists}" Header="Artists" IsReadOnly="True" Width="2*"/>
+          <DataGridTextColumn Binding="{Binding Path=Track.Album}" Header="Album" IsReadOnly="True" Width="2*"/>
+          <DataGridTextColumn Binding="{Binding Path=Track.AlbumTrack}" Header="Track" IsReadOnly="True" Width="SizeToHeader"/>
+          <DataGridTextColumn Binding="{Binding Path=Track.Composers}" Header="Composers" IsReadOnly="True" Width="*"/>
+          <DataGridTextColumn Binding="{Binding Path=Track.Publisher}" Header="Publisher" IsReadOnly="True" Width="*"/>
+          <DataGridTextColumn Binding="{Binding Path=Track.Genres}" Header="Genres" IsReadOnly="True" Width="*"/>
+          <DataGridTextColumn Binding="{Binding Path=Track.Year}" Header="Year   " IsReadOnly="True" Width="SizeToHeader"/>
+          <DataGridTextColumn Binding="{Binding Path=Track.Location.Name}" Header="Location" IsReadOnly="True" Width="2*"/>
+          <DataGridCheckBoxColumn Binding="{Binding Path=IsRemovale, UpdateSourceTrigger=PropertyChanged}" Header="Remove" 
+                                ElementStyle="{StaticResource OneClickCheckBoxStyle}"/>
+          <DataGridCheckBoxColumn Binding="{Binding Path=IsAddPlaylist, UpdateSourceTrigger=PropertyChanged}" Header="Remove" 
+                                ElementStyle="{StaticResource OneClickCheckBoxStyle}"/>
+        </DataGrid.Columns>
+      </DataGrid>
+      <TextBlock Grid.Row="0" Grid.Column="1" Text="Move&#xA;Track" FontWeight="Bold" Background="Violet"/>
+      <local:ArrowButton Grid.Row="1" Grid.Column="1" x:Name="BeginningButton" ButtonType="1" 
+              ToolTip="Click here to move the selected rows to the beginning of all rows. Only available when column '#' is active for sorting."/>
+      <local:ArrowButton Grid.Row="2" Grid.Column="1" x:Name="UpPageButton" ButtonType="2" 
+              ToolTip="Click here to move the selected rows one page higher. Only available when column '#' is active for sorting."/>
+      <local:ArrowButton Grid.Row="3" Grid.Column="1" x:Name="UpRowButton" ButtonType="3" 
+              ToolTip="Click here to move the selected rows one row higher. Only available when column '#' is active for sorting."/>
+      <local:ArrowButton Grid.Row="4" Grid.Column="1" x:Name="DownRowButton" ButtonType="4"
+              ToolTip="Click here to move the selected rows one row lower. Only available when column '#' is active for sorting."/>
+      <local:ArrowButton Grid.Row="5" Grid.Column="1" x:Name="DownPageButton" ButtonType="5" 
+              ToolTip="Click here to move the selected rows one page lower. Only available when column '#' is active for sorting."/>
+      <local:ArrowButton Grid.Row="6" Grid.Column="1" x:Name="EndButton"  ButtonType="6" 
+              ToolTip="Click here to move the selected rows to the end of all rows. Only available when column '#' is active for sorting."/>
+    </Grid>
 
     <Rectangle Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Fill="Gainsboro"/>
     <Button Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Name="SaveButton" Content="_Save" HorizontalAlignment="Stretch" Margin="4,2"/>

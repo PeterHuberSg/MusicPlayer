@@ -57,11 +57,12 @@ namespace MusicPlayer {
       YearComboBox.SelectionChanged += yearComboBox_SelectionChanged;
       GenreComboBox.SelectionChanged += filterComboBox_SelectionChanged;
       ImportCheckBox.Click += filterCheckBox_Click;
-      PlayListCheckBox.Click += filterCheckBox_Click;
+      PlaylistCheckBox.Click += filterCheckBox_Click;
       ExistCheckBox.Click += filterCheckBox_Click;
       DuplicateCheckBox.Click += filterCheckBox_Click;
       ClearButton.Click += clearButton_Click;
-      SelectAllButton.Click += selectAllButton_Click;
+      ImportAllButton.Click += importAllButton_Click;
+      PLAllButton.Click += plAllButton_Click;
       UnselectAllButton.Click += unselectAllButton_Click;
       RenameTrackButton.Click += renameTrackButton_Click;
 
@@ -105,27 +106,41 @@ namespace MusicPlayer {
       public int No { get; }
       public Track Track { get; }
 
-      public bool IsSelected {//User selected this track for import
+      /// <summary>
+      /// User selected this track for import
+      /// </summary>
+      public bool IsImport {
         get {
-          return isSelected;
+          return isImport;
         }
         set {
-          if (value && IsExisting) {
-            throw new Exception("It is not possible to select (import) a track which exists already.");
-          }
-          if (isSelected!=value) {
-            isSelected = value;
+          //if (value && IsExisting) {
+          //  throw new Exception("It is not possible to select (import) a track which exists already.");
+          //}
+          if (IsExisting) return; //user clicked into empty cell where hidden Import CheckBox sits
+
+          if (isImport!=value) {
+            isImport = value;
             if (PlaylistCheckBoxIsEnabled) {
               IsAddPlaylist = value;
             }
-            PlaylistCheckBoxVisibility = hasPlayListName && (value || IsExisting) ? Visibility.Visible : Visibility.Hidden;
+            PlaylistCheckBoxVisibility = hasPlaylistName && (value || IsExisting) ? Visibility.Visible : Visibility.Hidden;
             HasSelectedChanged?.Invoke();
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsImport)));
           }
         }
       }
-      bool isSelected;
+      bool isImport;
 
-      //User selected this track for adding to playlist OR CheckBox is disabled and displays that the track is already in the playlist
+
+      public Visibility ImportCheckBoxVisibility { get; }//Import Check is only visible if track is not imported yet
+      public bool ImportCheckBoxIsEnabled { get; }
+
+
+      /// <summary>
+      /// User selected this track for adding to playlist OR CheckBox is disabled and displays that the track is already in 
+      /// the playlist
+      /// </summary>
       public bool IsAddPlaylist {
         get {
           return isAddPlaylist;
@@ -140,7 +155,10 @@ namespace MusicPlayer {
       }
       bool isAddPlaylist;
 
-      //Playlist CheckBox is visible if a playlist name is entered
+
+      /// <summary>
+      /// Playlist CheckBox is visible if a playlist name is entered
+      /// </summary>
       public Visibility PlaylistCheckBoxVisibility { 
         get {
           return playlistCheckBoxVisibility;
@@ -154,7 +172,10 @@ namespace MusicPlayer {
       }
       Visibility playlistCheckBoxVisibility;
 
-      //Playlist CheckBox is disabled when the track is already in the playlist
+
+      /// <summary>
+      /// Playlist CheckBox is disabled when the track is already in the playlist
+      /// </summary>
       public bool PlaylistCheckBoxIsEnabled {
         get {
           return playlistCheckBoxIsEnabled;
@@ -168,8 +189,8 @@ namespace MusicPlayer {
       }
       bool playlistCheckBoxIsEnabled;
 
+
       public bool IsExisting { get;} //track is already imported
-      public Visibility ImportCheckBoxVisibility { get; }//Import Check is only visible if track is not imported yet
       public bool IsDouble { get; set; } //2 tracks in the import list have the same name and artist
 
 #pragma warning disable CA2211 // Non-constant fields should not be visible
@@ -187,29 +208,31 @@ namespace MusicPlayer {
           Track = existingTrack;
           IsExisting = true;
           ImportCheckBoxVisibility = Visibility.Hidden;
+          ImportCheckBoxIsEnabled = false;
         } else {
           IsExisting = false;
           ImportCheckBoxVisibility = Visibility.Visible;
+          ImportCheckBoxIsEnabled = true;
         }
-        IsSelected = !IsExisting;
+        IsImport = !IsExisting;
       }
 
 
       Playlist? playlist;
-      bool hasPlayListName;
+      bool hasPlaylistName;
 
 
-      public void UpdatePlayListCheckBoxes(Playlist? playlist, bool hasPlayListName) {
+      public void UpdatePlaylistCheckBoxes(Playlist? playlist, bool hasPlaylistName) {
         this.playlist = playlist;
-        this.hasPlayListName = hasPlayListName;
-        if (!hasPlayListName) {
+        this.hasPlaylistName = hasPlaylistName;
+        if (!hasPlaylistName) {
           PlaylistCheckBoxVisibility = Visibility.Hidden;
         } else {
-          PlaylistCheckBoxVisibility = IsSelected || IsExisting ? Visibility.Visible : Visibility.Hidden;
+          PlaylistCheckBoxVisibility = IsImport || IsExisting ? Visibility.Visible : Visibility.Hidden;
           PlaylistCheckBoxIsEnabled =!Track.Playlists.Where(plt => plt.Playlist==playlist).Any();
           if (PlaylistCheckBoxIsEnabled) {
             //track is not yet in playlist. User has just selected a playlist. 
-            IsAddPlaylist = IsSelected;
+            IsAddPlaylist = IsImport;
           } else {
             //track is already in playlist, show it as disabled and selected
             IsAddPlaylist = true;
@@ -225,9 +248,9 @@ namespace MusicPlayer {
 
     private async void importWindow_Loaded(object sender, RoutedEventArgs e) {
       await selectDirectoy();
-      PlayListComboBox.SelectionChanged += playListComboBox_SelectionChanged;
-      PlayListComboBox.AddHandler(TextBoxBase.TextChangedEvent, new RoutedEventHandler(PlayListComboBox_TextChanged));
-      PlayListComboBox.LostFocus += playListComboBox_LostFocus;
+      PlaylistComboBox.SelectionChanged += PlaylistComboBox_SelectionChanged;
+      PlaylistComboBox.AddHandler(TextBoxBase.TextChangedEvent, new RoutedEventHandler(PlaylistComboBox_TextChanged));
+      PlaylistComboBox.LostFocus += PlaylistComboBox_LostFocus;
     }
 
     #region Read Tracks
@@ -284,13 +307,13 @@ namespace MusicPlayer {
 
         var playlists = DC.Data.Playlists.Values.OrderBy(p => p.Name).Select(p=>p.Name).ToList();
         playlists.Insert(0, "");
-        PlayListComboBox.ItemsSource = playlists;
+        PlaylistComboBox.ItemsSource = playlists;
 
         TrackPlayer.Init(getCurrentTrack, getNextTrack);
 
         ImportButton.IsEnabled = true;
-        updatePlayListCheckBoxes();
-        PlayListComboBox.Focus();
+        updatePlaylistCheckBoxes();
+        PlaylistComboBox.Focus();
         TrackRow.HasSelectedChanged = trackRow_HasSelectedChanged;
         TrackRow.HasIsAddPlaylistChanged = trackRow_HasSelectedChanged;
         trackRow_HasSelectedChanged();
@@ -331,7 +354,7 @@ namespace MusicPlayer {
       var selectedCount = 0;
       var playlistCount = 0;
       foreach (var trackRow in trackRows) {
-        if (trackRow.IsSelected && !trackRow.IsExisting) {
+        if (trackRow.IsImport && !trackRow.IsExisting) {
           selectedCount++;
         }
         if (trackRow.IsAddPlaylist) {
@@ -344,7 +367,7 @@ namespace MusicPlayer {
     }
 
     private void updateSelectedCountTextBox() {
-      SelectedCountTextBox.Text =hasPlayListName ? $"{selectedCountString}, {playlistCountString}" : selectedCountString;
+      SelectedCountTextBox.Text =hasPlaylistName ? $"{selectedCountString}, {playlistCountString}" : selectedCountString;
     }
 
 
@@ -472,7 +495,7 @@ namespace MusicPlayer {
       PublisherComboBox.SelectedIndex = 0;
       YearComboBox.SelectedIndex = 0;
       ImportCheckBox.IsChecked = null;
-      PlayListCheckBox.IsChecked = null;
+      PlaylistCheckBox.IsChecked = null;
       ExistCheckBox.IsChecked = null;
       DuplicateCheckBox.IsChecked = null;
 
@@ -482,59 +505,62 @@ namespace MusicPlayer {
     }
 
 
-    private void selectAllButton_Click(object sender, RoutedEventArgs e) {
-      //throw new Exception();
-      ////TrackRow.HasIsDeletionChanged = null;
+    private void importAllButton_Click(object sender, RoutedEventArgs e) {
       foreach (var item in TracksDataGrid.Items) {
         var trackRow = (TrackRow)item;
-        trackRow.IsSelected = !trackRow.IsExisting;
+        trackRow.IsImport = !trackRow.IsExisting;
+      }
+    }
+
+
+    private void plAllButton_Click(object sender, RoutedEventArgs e) {
+      foreach (var item in TracksDataGrid.Items) {
+        var trackRow = (TrackRow)item;
         if (trackRow.PlaylistCheckBoxIsEnabled) {
           trackRow.IsAddPlaylist = true;
         }
       }
-      ////TrackRow.HasIsDeletionChanged = trackRow_HasSelectedChanged;
-      ////tracksViewSource.View.Refresh(); brauchts das ?
     }
 
 
     private void unselectAllButton_Click(object sender, RoutedEventArgs e) {
       foreach (var item in TracksDataGrid.Items) {
         var trackRow = (TrackRow)item;
-        trackRow.IsSelected = false;
+        trackRow.IsImport = false;
         if (trackRow.PlaylistCheckBoxIsEnabled) {
           trackRow.IsAddPlaylist = false;
         }
       }
-      tracksViewSource.View.Refresh();
+      //tracksViewSource.View.Refresh();
     }
 
 
-    private void playListComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) {
+    private void PlaylistComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) {
       if (e.AddedItems.Count>0) {
         var addedItem = e.AddedItems[0];
         if (addedItem is not null) {
-          updatePlayList(addedItem.ToString());
+          updatePlaylist(addedItem.ToString());
           return;
         }
       }
-      updatePlayList(PlayListComboBox.Text);
+      updatePlaylist(PlaylistComboBox.Text);
     }
 
 
-    private void playListComboBox_LostFocus(object sender, RoutedEventArgs e) {
-      updatePlayList(PlayListComboBox.Text);
+    private void PlaylistComboBox_LostFocus(object sender, RoutedEventArgs e) {
+      updatePlaylist(PlaylistComboBox.Text);
     }
 
-    private void PlayListComboBox_TextChanged(object sender, RoutedEventArgs e) {
-      updatePlayList(PlayListComboBox.Text);
+    private void PlaylistComboBox_TextChanged(object sender, RoutedEventArgs e) {
+      updatePlaylist(PlaylistComboBox.Text);
     }
 
-    bool hasPlayListName;
+    bool hasPlaylistName;
     Playlist? playlist;
 
 
-    private void updatePlayList(string? playlistName) {
-      var hasPlayListNameNew = !string.IsNullOrEmpty(playlistName);
+    private void updatePlaylist(string? playlistName) {
+      var hasPlaylistNameNew = !string.IsNullOrEmpty(playlistName);
       Playlist? playlistNew;
       if (string.IsNullOrWhiteSpace(playlistName)) {
         playlistNew = null;
@@ -542,19 +568,19 @@ namespace MusicPlayer {
         DC.Data.PlaylistsByNameLower.TryGetValue(playlistName.ToLowerInvariant(), out playlistNew);
       }
 
-      if (hasPlayListName!=hasPlayListNameNew || playlist!=playlistNew) {
-        hasPlayListName = hasPlayListNameNew;
+      if (hasPlaylistName!=hasPlaylistNameNew || playlist!=playlistNew) {
+        hasPlaylistName = hasPlaylistNameNew;
         playlist = playlistNew;
-        updatePlayListCheckBoxes();
+        updatePlaylistCheckBoxes();
       }
     }
 
 
 
-    private void updatePlayListCheckBoxes() {
+    private void updatePlaylistCheckBoxes() {
       foreach (var item in TracksDataGrid.Items) {
         var trackRow = (TrackRow)item;
-        trackRow.UpdatePlayListCheckBoxes(playlist, hasPlayListName);
+        trackRow.UpdatePlaylistCheckBoxes(playlist, hasPlaylistName);
       }
     }
 
@@ -632,13 +658,13 @@ namespace MusicPlayer {
 
       //only accept item which match IsSelected AND IsDuplicated, i.e. AND condition
       if (ImportCheckBox.IsChecked is not null) {
-        if (trackRow.IsSelected!=ImportCheckBox.IsChecked) {
+        if (trackRow.IsImport!=ImportCheckBox.IsChecked) {
           isAccepted = false;
         }
       }
 
-      if (PlayListCheckBox.IsChecked is not null) {
-        if (trackRow.IsAddPlaylist!=PlayListCheckBox.IsChecked) {
+      if (PlaylistCheckBox.IsChecked is not null) {
+        if (trackRow.IsAddPlaylist!=PlaylistCheckBox.IsChecked) {
           isAccepted = false;
         }
       }
@@ -724,14 +750,14 @@ namespace MusicPlayer {
 
     private void importButton_Click(object sender, RoutedEventArgs e) {
       if (playlist is null) {
-        var playlistName = PlayListComboBox.Text;
+        var playlistName = PlaylistComboBox.Text;
         if (!string.IsNullOrWhiteSpace(playlistName)) {
           playlist = new Playlist(playlistName);
         }
       }
 
       foreach (var trackRow in trackRows) {
-        if (trackRow.IsDouble && trackRow.IsSelected) {
+        if (trackRow.IsDouble && trackRow.IsImport) {
           MessageWindow.Show(this, "It is not possible to import tracks with the same artist name and title:" + Environment.NewLine +
             trackRow.Track.TitleArtists, null);
           return;
@@ -746,35 +772,35 @@ namespace MusicPlayer {
       }
 
       var storedCount = 0;
-      var playlistNewCount = 0;
-      var playlistExistingCount = playlist?.TracksCount??0;
+      var playlistNewCount = playlist?.TracksCount??0;
+      var playlistTracks = new List<PlaylistTrack>();
       try {
         foreach (var trackRow in trackRows) {
           if (trackRow.IsExisting) {
             if (trackRow.IsAddPlaylist && playlist is not null && trackRow.PlaylistCheckBoxIsEnabled) {
-              _ = new PlaylistTrack(playlist, trackRow.Track, 10*(playlistNewCount+playlistExistingCount));
+              playlistTracks.Add(new PlaylistTrack(playlist, trackRow.Track, playlistNewCount));
               playlistNewCount++;
             }
 
           } else {
-            if (trackRow.IsSelected) {
+            if (trackRow.IsImport) {
               trackRow.Track.Store();
               storedCount++;
               if (trackRow.IsAddPlaylist && playlist is not null) {
-                _ = new PlaylistTrack(playlist, trackRow.Track, 10*(playlistNewCount+playlistExistingCount));
+                playlistTracks.Add(new PlaylistTrack(playlist, trackRow.Track, playlistNewCount));
                 playlistNewCount++;
               }
-              trackRow.IsSelected = false;//this sets also IsAddPlaylist to false
+              trackRow.IsImport = false;//this sets also IsAddPlaylist to false
             }
           }
-
-
-
         };
 
         DC.Data.UpdateTracksStats();
 
         Close();
+        if (playlistTracks.Count>0) {
+          PlaylistWindow.Show(Owner, playlist!, playlistTracks, ((MainWindow)Owner).RefreshPlaylistDataGrid);
+        }
       } catch (Exception ex) {
 
         MessageWindow.Show(this, "Exception during Save" + Environment.NewLine +
