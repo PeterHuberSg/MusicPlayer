@@ -17,7 +17,7 @@ namespace MusicPlayer {
     #region Properties
     //      ----------
 
-    public enum TypeEnum { Play, Next, Repeat, Random, Mute}
+    public enum TypeEnum { Play, PlayStop, Pause, Next, Repeat, Random, Mute}
 
 
     /// <summary>
@@ -44,7 +44,9 @@ namespace MusicPlayer {
 
     private void setToolTip() {
       ToolTip = Type switch {
-        TypeEnum.Play => new ToolTip { Content="Starts and stops a track." },
+        TypeEnum.Play => new ToolTip { Content="Starts a track." },
+        TypeEnum.PlayStop => new ToolTip { Content="Starts and pauses a track." },
+        TypeEnum.Pause => new ToolTip { Content="Pauses and restarts a track." },
         TypeEnum.Next => new ToolTip { Content="Plays the next song in the list." },
         TypeEnum.Repeat => new ToolTip { Content="Keeps playing all tracks in the list." },
         TypeEnum.Random => new ToolTip { Content="Shufles the tracks in a list and plays them in a random order." },
@@ -110,6 +112,8 @@ namespace MusicPlayer {
     static readonly GeometryGroup outlineDownGeometryGroup;
     static readonly StreamGeometry symbolPlayStreamGeometry;
     static readonly StreamGeometry symbolStopStreamGeometry;
+    static readonly StreamGeometry symbolPauseUpStreamGeometry;
+    static readonly StreamGeometry symbolPauseDownStreamGeometry;
     static readonly StreamGeometry symbolNextStreamGeometry;
     static readonly GeometryGroup symbolRepeatUpGeometryGroup;
     static readonly GeometryGroup symbolRepeatDownGeometryGroup;
@@ -167,6 +171,10 @@ namespace MusicPlayer {
         ctx.LineTo(new Point(x1, y0), isStroked: true, isSmoothJoin: false);
       }
       symbolStopStreamGeometry.Freeze();
+
+      //Pause symbol
+      symbolPauseUpStreamGeometry = createSymbolPauseStreamGeometry(isPressed: false);
+      symbolPauseDownStreamGeometry = createSymbolPauseStreamGeometry(isPressed: true);
 
       //Next symbol
       symbolNextStreamGeometry = new StreamGeometry { FillRule = FillRule.EvenOdd };
@@ -227,6 +235,33 @@ namespace MusicPlayer {
       geometryGroup.Children.Add(streamGeometry);
       geometryGroup.Freeze();
       return geometryGroup;
+    }
+
+
+    private static StreamGeometry createSymbolPauseStreamGeometry(bool isPressed) {
+      var symbolPauseStreamGeometry = new StreamGeometry { FillRule = FillRule.EvenOdd };
+      using (StreamGeometryContext ctx = symbolPauseStreamGeometry.Open()) {
+        const double offset = height / 6;
+        const double length = height - 2*offset;
+        const double xStep = length / 3;
+        const double x0 = originX + (width-length) / 2;
+        const double x1 = x0 + xStep;
+        const double x2 = x1 + xStep;
+        const double x3 = x0 + length;
+        const double y0 = originY + offset;
+        const double y1 = y0 + length;
+        var pressedY = isPressed ? shiftY : 0;
+        ctx.BeginFigure(new Point(x0, y0+pressedY), isFilled: true, isClosed: true);
+        ctx.LineTo(new Point(x0, y1+pressedY), isStroked: true, isSmoothJoin: false);
+        ctx.LineTo(new Point(x1, y1+pressedY), isStroked: true, isSmoothJoin: false);
+        ctx.LineTo(new Point(x1, y0+pressedY), isStroked: true, isSmoothJoin: false);
+        ctx.BeginFigure(new Point(x2, y0+pressedY), isFilled: true, isClosed: true);
+        ctx.LineTo(new Point(x2, y1+pressedY), isStroked: true, isSmoothJoin: false);
+        ctx.LineTo(new Point(x3, y1+pressedY), isStroked: true, isSmoothJoin: false);
+        ctx.LineTo(new Point(x3, y0+pressedY), isStroked: true, isSmoothJoin: false);
+      }
+      symbolPauseStreamGeometry.Freeze();
+      return symbolPauseStreamGeometry;
     }
 
 
@@ -416,7 +451,7 @@ namespace MusicPlayer {
     protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e) {
       if (isLeftButtonDown) {
         isLeftButtonDown = false;
-        if (Type!=TypeEnum.Next) {
+        if (Type!=TypeEnum.Play && Type!=TypeEnum.Next) {
           IsPressed = !isPressed;
         }
         RaiseEvent(new RoutedEventArgs(ClickEvent, this));
@@ -429,17 +464,42 @@ namespace MusicPlayer {
 
       switch (Type) {
       case TypeEnum.Play:
-        if (isPressed) {
+        drawingContext.DrawGeometry(ButtonSymbolFillBrush, buttonSymbolStrokePen, symbolPlayStreamGeometry);
+        break;
+
+      case TypeEnum.PlayStop:
+        if (!IsEnabled) {
+          drawingContext.DrawGeometry(ButtonSymbolDisableFillBrush, buttonSymbolStrokePen, symbolStopStreamGeometry);
+        } else if (isPressed) {
           drawingContext.DrawGeometry(ButtonSymbolFillBrush, buttonSymbolStrokePen, symbolStopStreamGeometry);
         } else {
           drawingContext.DrawGeometry(ButtonSymbolFillBrush, buttonSymbolStrokePen, symbolPlayStreamGeometry);
         }
         break;
 
-      case TypeEnum.Next:
-        drawingContext.DrawGeometry(ButtonSymbolFillBrush, buttonSymbolStrokePen, symbolNextStreamGeometry);
+      case TypeEnum.Pause:
+        if (IsEnabled) {
+          if (isPressed) {
+            drawingContext.DrawGeometry(ButtonSymbolFillBrush, buttonSymbolEnableDrawPen, symbolPauseDownStreamGeometry);
+          } else {
+            drawingContext.DrawGeometry(ButtonSymbolFillBrush, buttonSymbolEnableDrawPen, symbolPauseUpStreamGeometry);
+          }
+        } else {
+          if (isPressed) {
+            drawingContext.DrawGeometry(ButtonSymbolDisableFillBrush, buttonSymbolDisableDrawPen, symbolPauseDownStreamGeometry);
+          } else {
+            drawingContext.DrawGeometry(ButtonSymbolDisableFillBrush, buttonSymbolDisableDrawPen, symbolPauseUpStreamGeometry);
+          }
+        }
         break;
 
+      case TypeEnum.Next:
+        if (IsEnabled) {
+          drawingContext.DrawGeometry(ButtonSymbolFillBrush, buttonSymbolStrokePen, symbolNextStreamGeometry);
+        } else {
+          drawingContext.DrawGeometry(ButtonSymbolDisableFillBrush, buttonSymbolDisableDrawPen, symbolNextStreamGeometry);
+        }
+        break;
 
       case TypeEnum.Repeat:
         if (isPressed) {
@@ -528,10 +588,11 @@ namespace MusicPlayer {
     static readonly Brush buttonFillBrush = createFrozenSolidColorBrush(grayE);
     static readonly Brush buttonStrokeBrush = createFrozenSolidColorBrush(grayB);
     public static readonly Brush ButtonSymbolFillBrush = createFrozenSolidColorBrush(violet8);
+    public static readonly Brush ButtonSymbolDisableFillBrush = Brushes.DarkCyan;
     public static readonly Brush ButtonSymbolStrokeBrush = createFrozenSolidColorBrush(violet4);
     static readonly Pen buttonSymbolStrokePen = createFrozenPen(ButtonSymbolStrokeBrush, 1);
     static readonly Pen buttonSymbolEnableDrawPen = createFrozenPen(ButtonSymbolFillBrush, strokeWidth);
-    static readonly Pen buttonSymbolDisableDrawPen = createFrozenPen(Brushes.DarkCyan, strokeWidth);
+    static readonly Pen buttonSymbolDisableDrawPen = createFrozenPen(ButtonSymbolDisableFillBrush, strokeWidth);
     static readonly Pen buttonSymbolBlackPen = createFrozenPen(Brushes.Black, strokeWidth);
 
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Windows;
@@ -13,7 +14,7 @@ namespace MusicPlayer {
 
 
   /// <summary>
-  /// Interaction logic for PlayerControl.xaml
+  /// Provides a Window with the user interface to control a Player, i.e. playing music tracks like .mp3 files.
   /// </summary>
   public partial class PlayerControl: UserControl {
 
@@ -21,12 +22,10 @@ namespace MusicPlayer {
     #region Properties
     //      ----------
 
-    public Track? SelectedTrack { get; private set; }
-    //public int? SelectedTrackId { get; private set; }
-    //public IList<Track>? Tracks { get; private set; }
-
-
-    public event Action<Track>? TrackChanged;
+    /// <summary>
+    /// Is only raised if this PlayerControl is presently the Player.Owner.
+    /// </summary>
+    public event Action<Track?>? TrackChanged;
     #endregion
 
 
@@ -37,9 +36,10 @@ namespace MusicPlayer {
       InitializeComponent();
 
       PlayButton.Click += playButton_Click;
+      PauseButton.Click += pauseButton_Click;
       NextButton.Click += nextButton_Click;
       //RepeatButton.Click += RepeatButton_Click;
-      RandomButton.Click += RandomButton_Click;
+      ShuffleButton.Click += ShuffleButton_Click;
       MuteButton.Click += muteButton_Click;
       VolumeSlider.ValueChanged += volumeSlider_ValueChanged;
       Loaded += playerControl_Loaded;
@@ -47,9 +47,16 @@ namespace MusicPlayer {
 
       if (!DesignerProperties.GetIsInDesignMode(this)) {
         //in VS designer, Player.Current is null. Prevent the designer form executing the following lines.
-        Player.Current!.StateChanged += player_StateChanged;
+        if (Player.Current is null) {
+          //not already set in MainWindow or other Windoe
+          _ = new Player();
+        }
+        Player.Current!.CanSkipTrackChanged += Current_CanSkipTrackChanged;
+        Player.Current.StateChanged += player_StateChanged;
+        Player.Current.ErrorMessageChanged += Current_ErrorMessageChanged;
         Player.Current.PositionChanged += player_PositionChanged;
         Player.Current.VolumeChanged += player_VolumeChanged;
+        Current_CanSkipTrackChanged(Player.Current);
       }
     }
     #endregion
@@ -77,50 +84,37 @@ namespace MusicPlayer {
 
 
     private void playButton_Click(object sender, RoutedEventArgs e) {
-      if (getCurrentTrack is null) {
-        System.Diagnostics.Debugger.Break();
-        return;
-      }
-      if (PlayButton.IsPressed) {
-        Player.Current?.Play(this, getCurrentTrack());
-      } else {
-        Player.Current?.Pause();
+      if (getPlayingList is not null) {
+        var playinglist = getPlayingList();
+        if (playinglist is not null) {
+          Player.Current!.Play(this, playinglist);
+        }
       }
     }
-    //private void pauseToggleButton_Checked(object sender, RoutedEventArgs e) {
-    //  if (isNoPauseButtonEvent) return;
-
-    //  Player.Current?.Pause();
-    //}
 
 
-    //private void pauseToggleButton_Unchecked(object sender, RoutedEventArgs e) {
-    //  if (isNoPauseButtonEvent) return;
-
-    //  Player.Current?.Resume();
-    //}
-
-
-    //private void stopButton_Click(object sender, RoutedEventArgs e) {
-    //  Player.Current?.Stop();
-    //}
-//////////////////////////////////////////
-
+    private void pauseButton_Click(object sender, RoutedEventArgs e) {
+      if (PauseButton.IsPressed) {
+        Player.Current?.Pause();
+      } else {
+        Player.Current?.Resume();
+      }
+    }
 
 
     private void nextButton_Click(object sender, RoutedEventArgs e) {
-      if (getNextTrack is null) return;
+      if (!Player.Current!.CanSkipTrack) {
+        //button should be disabled and not possible that code comes here
+        System.Diagnostics.Debugger.Break();
+        return;
+      }
 
-      SelectedTrack = getNextTrack();
-      Player.Current?.Play(this, SelectedTrack);
+      Player.Current.PlayNextTrack();
     }
 
 
-    bool isNoPauseButtonEvent;
-
-
-
-    private void RandomButton_Click(object sender, RoutedEventArgs e) {
+    private void ShuffleButton_Click(object sender, RoutedEventArgs e) {
+      Player.Current!.IsShuffle = ShuffleButton.IsPressed;
     }
 
 
@@ -207,28 +201,36 @@ namespace MusicPlayer {
 
     private void player_StateChanged(Player player) {
       updateInfoTextBox(player);
-      SelectedTrack = player.Track;
+      //normally, the PlayButton is in the correct state, but once the player becomes idle (or error), it should switch from
+      // displaying the stop symbol to displaying the play symbol
 
-      if (PlayButton.IsPressed != (player.PlayerState==PlayerStateEnum.Playing || player.PlayerState==PlayerStateEnum.Starting)) {
-        isNoPauseButtonEvent = true;
-        PlayButton.IsPressed = !PlayButton.IsPressed;
-        isNoPauseButtonEvent = false;
+      bool isEnabled, isPressed;
+      switch (player.State) {
+      case PlayerStateEnum.Idle:    isEnabled = false; isPressed = false; break;
+      case PlayerStateEnum.Playing: isEnabled = true;  isPressed = false; break;
+      case PlayerStateEnum.Paused:  isEnabled = true;  isPressed = true; break;
+      case PlayerStateEnum.Error:   isEnabled = true;  isPressed = false; break;
+      default:
+        throw new NotSupportedException();
       }
-      //isNoPauseButtonEvent = true;
-      //if (player.PlayerState==PlayerStateEnum.Paused) {
-        
-      //  PauseToggleButton.Content = "_Resume";
-      //  PauseToggleButton.IsChecked = true;
-      //} else {
-      //  PauseToggleButton.Content = "_Pause";
-      //  PauseToggleButton.IsChecked = false;
-      //}
-      //isNoPauseButtonEvent = false;
-      //PauseToggleButton.IsEnabled =
-      //  player.PlayerState==PlayerStateEnum.Playing || player.PlayerState==PlayerStateEnum.Paused;
+      if (PauseButton.IsEnabled!=isEnabled || PauseButton.IsPressed!=isPressed) {
+        PauseButton.IsEnabled = isEnabled;
+        PauseButton.IsPressed = isPressed;
+        PauseButton.InvalidateVisual();
+      }
+    }
 
-      //StopButton.IsEnabled = player.PlayerState!=PlayerStateEnum.Idle;
 
+    private void Current_ErrorMessageChanged(Player player) {
+      if (player.ErrorMessage.Length==0) {
+        InfoTextBox.ToolTip = null;
+      } else {
+        var infoTextBoxToolTip = new ToolTip { Content = player.ErrorMessage };
+        InfoTextBox.ToolTip = infoTextBoxToolTip;
+        infoTextBoxToolTip.Placement = PlacementMode.Relative;
+        infoTextBoxToolTip.PlacementTarget = InfoTextBox;
+        infoTextBoxToolTip.IsOpen = true;
+      }
     }
 
 
@@ -296,29 +298,29 @@ namespace MusicPlayer {
     bool isVolumeFeedback;
 
 
-    private void player_VolumeChanged(Player obj) {
-      var volume = Player.Current!.Volume;
+    private void player_VolumeChanged(Player player) {
+      var volume = player.Volume;
       MuteButton.IsPressed = volume==0;
-      //if (volume==0) {
-      //  MuteToggleButton.Content = "Un_Mute";
-      //  MuteToggleButton.IsChecked = true;
-      //} else {
-      //  MuteToggleButton.Content = "_Mute";
-      //  MuteToggleButton.IsChecked = false;
-      //}
       isVolumeFeedback = true;
       VolumeSlider.Value = volume;
       isVolumeFeedback = false;
     }
 
 
+    private void Current_CanSkipTrackChanged(Player player) {
+      NextButton.IsEnabled = player.CanSkipTrack;
+      NextButton.InvalidateVisual();
+    }
+
+
     private void playerControl_Unloaded(object sender, RoutedEventArgs e) {
-      if (Player.Current?.PlayerControl==this) {
-        Player.Current.Stop();
+      if (Player.Current?.OwnerPlayerControl==this) {
+        Player.Current!.Release(this);
       }
       Player.Current!.StateChanged -= player_StateChanged;
       Player.Current.PositionChanged -= player_PositionChanged;
       Player.Current.VolumeChanged -= player_VolumeChanged;
+      Player.Current.CanSkipTrackChanged -= Current_CanSkipTrackChanged;
     }
     #endregion
 
@@ -326,43 +328,50 @@ namespace MusicPlayer {
     #region Methods
     //      -------
 
-    Func<Track>? getCurrentTrack;
-    Func<Track>? getNextTrack;
+    Func<Playinglist?>? getPlayingList;
 
 
-    internal void Init(Func<Track> getCurrentTrack, Func<Track> getNextTrack) {
-      this.getCurrentTrack = getCurrentTrack;
-      this.getNextTrack = getNextTrack;
+    //internal void Init(Func<Track> getCurrentTrack, Func<Track> getNextTrack) {
+    internal void Init(Func<Playinglist?>? getPlayingList) {
+      this.getPlayingList = getPlayingList;
+      //PlayButton.IsEnabled = getPlayingList is not null;
+      //this.getNextTrack = getNextTrack;
       //PlayButton.IsEnabled = true;
-      NextButton.IsEnabled = true;
+      //NextButton.IsEnabled = true;
       //MuteButton.IsEnabled = true;
     }
 
 
     public void Play(Track track) {
-      SelectedTrack = track;
+      NextButton.IsEnabled = false;
       Player.Current?.Play(this, track);
     }
 
 
-    public bool GetNextTrack([NotNullWhen(true)] out Track? nextTrack) {
-      if (getNextTrack is null) {
-        System.Diagnostics.Debugger.Break();
-        nextTrack = null;
-        return false;
-      }
-      nextTrack = getNextTrack();
-      return true;
+    public void Play(Playinglist allTracksPlayinglist) {
+      NextButton.IsEnabled = true;
+      Player.Current?.Play(this, allTracksPlayinglist);
     }
 
 
-    public void SetSelectedTrack(Track track) {
+    //public bool GetNextTrack([NotNullWhen(true)] out Track? nextTrack) {
+    //  if (getNextTrack is null) {
+    //    System.Diagnostics.Debugger.Break();
+    //    nextTrack = null;
+    //    return false;
+    //  }
+    //  nextTrack = getNextTrack();
+    //  return true;
+    //}
+
+
+    public void SetSelectedTrack(Track? track) {
       TrackChanged?.Invoke(track);
     }
 
 
-    internal void CloseIfSelected(Track track) {
-      Player.Current?.CloseIfSelected(track);
+    public void StopTrackIfPlaying(Track track) {
+      Player.Current?.StopTrackIfPlaying(track);
     }
     #endregion
   }

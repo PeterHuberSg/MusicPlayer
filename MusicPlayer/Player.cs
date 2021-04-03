@@ -12,9 +12,9 @@ namespace MusicPlayer {
 
   public enum PlayerStateEnum {
     Idle,
-    Starting,
     Playing,
-    Paused
+    Paused,
+    Error
   }
   
 
@@ -25,47 +25,113 @@ namespace MusicPlayer {
     //      ----------
 
     #pragma warning disable CA2211 // Non-constant fields should not be visible
-    public static Player? Current;
-    #pragma warning restore CA2211
+    public static Player? Current { get; private set;}
+#pragma warning restore CA2211
+
+
+    public bool CanSkipTrack {
+      get { return _canSkipTrack; }
+      set {
+        if (_canSkipTrack!=value) {
+          _canSkipTrack = value;
+          trace($"CanSkipTrack: {value}");
+          CanSkipTrackChanged?.Invoke(this);
+        }
+      }
+    }
+    bool _canSkipTrack;
+    public event Action<Player>? CanSkipTrackChanged;
+
+
+    public Track? Track {
+      get { return _track; }
+      private set {
+        if (_track!=value) {
+          _track = value;
+          trace($"Track: {value}");
+          OwnerPlayerControl?.SetSelectedTrack(Track);
+          TrackChanged?.Invoke(this);
+        }
+      }
+    }
+    Track? _track;
+    public event Action<Player>? TrackChanged;
 
 
     public Duration NaturalDuration => mediaPlayer.NaturalDuration;
 
 
+    public bool IsShuffle {
+      get { return _isShuffle; }
+      set {
+        if (_isShuffle!=value) {
+          _isShuffle = value;
+          trace($"IsShuffle: {value}");
+          IsShuffleChanged?.Invoke(this);
+        }
+      }
+    }
+    bool _isShuffle;
+    public event Action<Player>? IsShuffleChanged;
+
+
     public TimeSpan Position => mediaPlayer.Position;
+    public event Action<Player>? PositionChanged;
 
 
-    public bool IsMuted { get; private set; }
+    public bool IsMuted {
+      get { return _isMuted; }
+      private set {
+        if (_isMuted!=value) {
+          _isMuted = value;
+          trace($"IsMuted: {value}");
+          IsMutedChanged?.Invoke(this);
+        }
+      }
+    }
+    bool _isMuted;
+    public event Action<Player>? IsMutedChanged;
 
 
     public double Volume => mediaPlayer.Volume;
+    public event Action<Player>? VolumeChanged;
 
 
-    public PlayerControl? PlayerControl { get; private set; }
+    public PlayerControl? OwnerPlayerControl { get; private set; }
 
 
-    public PlayerStateEnum PlayerState { get; private set; }
-
-
-    bool hasStateChanged;
-
-
-    private void setState(PlayerStateEnum newState) {
-      if (PlayerState!=newState) {
-        PlayerState = newState;
-        trace($"State: {newState}");
-        hasStateChanged = true;
+    public PlayerStateEnum State {
+      get { return _state; }
+      private set {
+        if (_state!=value) {
+          _state = value;
+          trace($"State: {value}");
+          if (value!=PlayerStateEnum.Error) {
+            ErrorMessage = "";
+          }
+          StateChanged?.Invoke(this);
+        }
       }
     }
+    PlayerStateEnum _state;
+    public event Action<Player>? StateChanged;
 
 
-    private void reportStateChange() {
-      //trace($"Stat {mediaPlayer.Position}, {mediaPlayer.Source}");
-      if (hasStateChanged) {
-        hasStateChanged = false;
-        StateChanged?.Invoke(this);
+    public string ErrorMessage {
+      get { return _errorMessage; }
+      private set {
+        if (_errorMessage!=value) {
+          _errorMessage = value;
+          trace($"ErrorMessage: {value}");
+          ErrorMessageChanged?.Invoke(this);
+        }
       }
     }
+    string _errorMessage;
+    public event Action<Player>? ErrorMessageChanged;
+
+
+    public bool IsTracePosition { set; private get; }
 
 
     private void trace(string traceString) {
@@ -75,19 +141,14 @@ namespace MusicPlayer {
     }
 
 
-    public Track? Track { get; private set; }
-
-
     public event Action<string>? Traced;
-    public event Action<Player>? StateChanged;
-    public event Action<Player>? PositionChanged;
-    public event Action<Player>? VolumeChanged;
     #endregion
 
 
     #region Constructor
     //      -----------
 
+    readonly Random random;
     readonly MediaPlayer mediaPlayer;
     readonly DispatcherTimer dispatcherTimer;
 
@@ -96,14 +157,12 @@ namespace MusicPlayer {
       if (Current is not null)  throw new Exception();
 
       Current = this;
-      PlayerState = PlayerStateEnum.Idle;
+      random = new Random();
+      _errorMessage = "";
       mediaPlayer = new MediaPlayer();
-      mediaPlayer.BufferingStarted += mediaPlayer_BufferingStarted;
-      mediaPlayer.BufferingEnded += mediaPlayer_BufferingEnded;
       mediaPlayer.MediaOpened += mediaPlayer_MediaOpened;
       mediaPlayer.MediaFailed += mediaPlayer_MediaFailed;
       mediaPlayer.MediaEnded += mediaPlayer_MediaEnded;
-      mediaPlayer.ScriptCommand += mediaPlayer_ScriptCommand;
 
       dispatcherTimer = new DispatcherTimer();
       dispatcherTimer.Tick += new EventHandler(dispatcherTimer_Tick);
@@ -115,74 +174,17 @@ namespace MusicPlayer {
     #region Eventhandlers
     //      -------------
 
-    private void mediaPlayer_BufferingStarted(object? sender, EventArgs e) {
-      System.Diagnostics.Debugger.Break();
-    }
-
-    private void mediaPlayer_BufferingEnded(object? sender, EventArgs e) {
-      System.Diagnostics.Debugger.Break();
-    }
-
-
-    //DateTime mediaOpenedTime;
-
-
     private void mediaPlayer_MediaOpened(object? sender, EventArgs e) {
       trace("MediaOpened");
-      //mediaOpenedTime = DateTime.Now;
-      PlayerControl?.SetSelectedTrack(Track!);
-
-      switch (PlayerState) {
-      case PlayerStateEnum.Idle:
-        System.Diagnostics.Debugger.Break(); return;
-      case PlayerStateEnum.Starting:
-        if (isPlayWaiting) {
-          startDelayedPlay();
-          return;
-        }
-
-        if (isStopWaiting) {
-          isStopWaiting = false;
-          setState(PlayerStateEnum.Idle);
-          trace("mediaPlayer.Stop");
-          mediaPlayer.Stop();
-          reportStateChange();
-          return;
-        }
-
-        dispatcherTimer.Start();
-        setState(PlayerStateEnum.Playing);
-        reportStateChange();
-        return;
-      case PlayerStateEnum.Playing:
-        System.Diagnostics.Debugger.Break(); return;
-      case PlayerStateEnum.Paused:
-        System.Diagnostics.Debugger.Break(); return;
-      default:
-        throw new NotSupportedException();
-      }
-      //should never come here
-      throw new NotSupportedException();
-    }
-
-
-    private void startDelayedPlay() {
-      isPlayWaiting = false;
-      isStopWaiting = false;
-      Track = playWaitingTrack;
-      setState(PlayerStateEnum.Starting);
-      trace("mediaPlayer.Open & Play");
-
-      mediaPlayer.Open(new Uri(playWaitingTrack!.FullFileName));
-      playWaitingTrack = null;
-      mediaPlayer.Play();
-      reportStateChange();
+      State = PlayerStateEnum.Playing;
     }
 
 
     private void mediaPlayer_MediaFailed(object? sender, ExceptionEventArgs e) {
       dispatcherTimer.Stop();
-      System.Diagnostics.Debugger.Break();
+      trace($"MediaFailed: {e.ErrorException.Message}");
+      ErrorMessage = e.ErrorException.Message;
+      State = PlayerStateEnum.Error;
     }
 
 
@@ -191,115 +193,91 @@ namespace MusicPlayer {
       dispatcherTimer.Stop();
       PositionChanged?.Invoke(this);
 
-      switch (PlayerState) {
-      case PlayerStateEnum.Idle:
-        System.Diagnostics.Debugger.Break(); return;
-      case PlayerStateEnum.Starting:
-        System.Diagnostics.Debugger.Break(); return;
-      case PlayerStateEnum.Playing:
-        Track? nextTrack = null;
-        if (PlayerControl?.GetNextTrack(out nextTrack)??false) {
-          trace($"GetNextTrack {nextTrack!.Title}");
-          Track = nextTrack;
-          setState(PlayerStateEnum.Starting);
-          trace("mediaPlayer.Open & Play");
-          mediaPlayer.Open(new Uri(nextTrack!.FullFileName));
-          mediaPlayer.Play();
-          reportStateChange();
-        } else {
-          Track = null;
-          setState(PlayerStateEnum.Idle);
-          reportStateChange();
-        }
-        return;
-      case PlayerStateEnum.Paused:
-        System.Diagnostics.Debugger.Break(); return;
-      default:
-        throw new NotSupportedException();
+      playNextTrack();
+    }
+
+
+    private void playNextTrack() {
+      Track = playinglist?.GetNext(IsShuffle ? random : null)??null;
+      if (Track==null) {
+        mediaPlayer.Pause();//prevents from immediate playing when user changes position
+        State = PlayerStateEnum.Idle;
+      } else {
+        trace($"Play next {(IsShuffle ? "random " : "")}{Track.Title}");
+        playtrack();
       }
-      //should never come here
-      throw new NotSupportedException();
     }
 
 
-    private void mediaPlayer_ScriptCommand(object? sender, MediaScriptCommandEventArgs e) {
-      System.Diagnostics.Debugger.Break();
+    private void playtrack() {
+      mediaPlayer.Open(new Uri(Track!.FullFileName));
+      mediaPlayer.Play();
+      State = PlayerStateEnum.Playing;
+      dispatcherTimer.Start();//
     }
+
+
+    int lastPositionSeconds;
 
 
     private void dispatcherTimer_Tick(object? sender, EventArgs e) {
-      //trace($"Tick {mediaPlayer.Position}, {mediaPlayer.Source}");
-      PositionChanged?.Invoke(this);
+      if (lastPositionSeconds!=mediaPlayer.Position.Seconds) {
+        lastPositionSeconds = mediaPlayer.Position.Seconds;
+        if (IsTracePosition) {
+          trace($"Tick {mediaPlayer.Position}, {mediaPlayer.Source}");
+        }
+        PositionChanged?.Invoke(this);
+      }
     }
     #endregion
 
 
-    #region Play/Stop Methods
-    //      -----------------
+    #region Play/Pause Methods
+    //      ------------------
 
-    Track? playWaitingTrack;
-    bool isPlayWaiting;
+    Playinglist? playinglist;
 
 
     public void Play(PlayerControl playerControl, Track track) {
-
-      trace($"Play {track.Title}");
-      PlayerControl = playerControl;
-
-      switch (PlayerState) {
-      case PlayerStateEnum.Idle:
-        break;
-      case PlayerStateEnum.Starting:
-        if (Track==track) return; //the track is already starting, so just continue
-        isPlayWaiting = true;
-        playWaitingTrack = track;
-        return;
-      case PlayerStateEnum.Playing:
-        if (Track==track) return; //the track is already playing, so just continue
-        break;
-      case PlayerStateEnum.Paused:
-        break;
-      default:
-        throw new NotSupportedException();
-      }
-
-      if (Track==track) {
-        //it would not raise MediaOpened, so just go to Playing
-        setState(PlayerStateEnum.Playing);
-        trace("mediaPlayer.Play");
-        mediaPlayer.Play();
-        reportStateChange();
-        return;
-      }
-
+      OwnerPlayerControl = playerControl;
+      playinglist = null;
+      CanSkipTrack = false;
       Track = track;
-      setState(PlayerStateEnum.Starting);
-      trace("mediaPlayer.Open & Play");
-      mediaPlayer.Open(new Uri(track.FullFileName));
-      mediaPlayer.Play();
-      reportStateChange();
+      trace($"Play single track {Track.Title}");
+      playtrack();
+    }
+
+
+    public void Play(PlayerControl playerControl, Playinglist playinglist) {
+      OwnerPlayerControl = playerControl;
+      this.playinglist = playinglist;
+      CanSkipTrack = true;
+      Track = playinglist.GetNext(null);
+      trace($"Play {Track.Title}");
+      playtrack();
+    }
+
+
+    public void PlayNextTrack() {
+      playNextTrack();
     }
 
 
     public void Pause() {
-      trace("Pause");
-      if (PlayerState!=PlayerStateEnum.Playing) return;
+      if (State!=PlayerStateEnum.Playing) return;
 
-      setState(PlayerStateEnum.Paused);
       trace("mediaPlayer.Pause");
       mediaPlayer.Pause();
-      reportStateChange();
+      State = PlayerStateEnum.Paused;
     }
 
 
     public void Resume() {
-      trace("Resume");
-      if (PlayerState!=PlayerStateEnum.Paused) return;
+      if (State!=PlayerStateEnum.Paused) return;
 
-      setState(PlayerStateEnum.Playing);
-      trace("mediaPlayer.Play");
+      trace("mediaPlayer.Resume");
       mediaPlayer.Play();
-      reportStateChange();
+      State = PlayerStateEnum.Playing;
     }
 
 
@@ -316,46 +294,33 @@ namespace MusicPlayer {
     }
 
 
-    bool isStopWaiting;
-
-
-    public void Stop() {
-      trace("Stop");
-      playWaitingTrack = null;
-      PlayerControl = null;
-      switch (PlayerState) {
-      case PlayerStateEnum.Idle:
-        return;
-      case PlayerStateEnum.Starting:
-        isStopWaiting = true;
-        return;
-      case PlayerStateEnum.Playing:
-        break;
-      case PlayerStateEnum.Paused:
-        break;
-      default:
-        throw new NotSupportedException();
-      }
-
-      setState(PlayerStateEnum.Idle);
-      trace("mediaPlayer.Stop");
-      mediaPlayer.Stop();
-      reportStateChange();
-    }
-
-
-    internal void CloseIfSelected(Track track) {
-      trace($"CloseIfSelected {track.FileName}");
+    public void StopTrackIfPlaying(Track track) {
+      trace($"Stop {track.FileName} if playing");
       if (Track is null) return;
 
       if (Track.FileName==track.FileName) {
-        playWaitingTrack = null;
-        PlayerControl = null;
-        setState(PlayerStateEnum.Idle);
+        Track = null;
+        OwnerPlayerControl = null;
         trace("mediaPlayer.Close()");
         mediaPlayer.Close();
-        reportStateChange();
+        State = PlayerStateEnum.Idle;
       }
+    }
+
+
+    /// <summary>
+    /// If playerControl is the current owner of the player, it gets removed as owner, any paying track gets stopped
+    /// and player becomes idle.
+    /// </summary>
+    public void Release(PlayerControl playerControl) {
+      if (OwnerPlayerControl!=playerControl) return;
+
+      OwnerPlayerControl = null;
+      playinglist = null;
+      CanSkipTrack = false;
+      trace("mediaPlayer.Release(playerControl)");
+      mediaPlayer.Close();
+      State = PlayerStateEnum.Idle;
     }
     #endregion
 
@@ -384,9 +349,9 @@ namespace MusicPlayer {
 
     public void Mute() {
       if (!IsMuted) {
-        IsMuted = true;
         volumeBeforeMute = mediaPlayer.Volume;
         mediaPlayer.Volume = 0;
+        IsMuted = true;
         VolumeChanged?.Invoke(this);
       }
     }
@@ -394,8 +359,8 @@ namespace MusicPlayer {
 
     public void UnMute() {
       if (IsMuted) {
-        IsMuted = false;
         mediaPlayer.Volume = volumeBeforeMute;
+        IsMuted = false;
         VolumeChanged?.Invoke(this);
       }
     }

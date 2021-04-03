@@ -38,6 +38,7 @@ namespace MusicPlayer {
       window.Show();
     }
 
+
     readonly Playlist? playlist;
     readonly Action<Playlist>? refreshOwner;
 
@@ -133,7 +134,7 @@ namespace MusicPlayer {
       SaveButton.IsEnabled = false;
 
       TrackPlayer.TrackChanged += trackPlayer_TrackChanged;
-      TrackPlayer.Init(getCurrentTrack, getNextTrack);
+      TrackPlayer.Init(getPlayinglist);
       Closed += playlistWindow_Closed;
 
       MainWindow.Register(this, "Playlist " + playlist?.Name);
@@ -180,6 +181,7 @@ namespace MusicPlayer {
         set {
           if (isRemoval!=value) {
             isRemoval = value;
+            //**--updatePlaylistCheckBox();
             HasIsRemovalChanged?.Invoke();
           }
         }
@@ -203,6 +205,23 @@ namespace MusicPlayer {
         }
       }
       bool isAddPlaylist;
+
+
+      /// <summary>
+      /// Playlist CheckBox is visible if a playlist name is entered and track is not marked for deletion
+      /// </summary>
+      public Visibility PlaylistCheckBoxVisibility {
+        get {
+          return playlistCheckBoxVisibility;
+        }
+        set {
+          if (playlistCheckBoxVisibility!=value) {
+            playlistCheckBoxVisibility = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PlaylistCheckBoxVisibility)));
+          }
+        }
+      }
+      Visibility playlistCheckBoxVisibility;
 
 
       /// <summary>
@@ -246,13 +265,6 @@ namespace MusicPlayer {
         isRemoval = false;
         isAddPlaylist = false;
       }
-
-
-      //public TrackRow(TrackRow oldTrackRow, Track track) {
-      //  No = oldTrackRow.No;
-      //  Track = track;
-      //  IsSelected = oldTrackRow.IsSelected;
-      //}
     }
     #endregion
 
@@ -338,6 +350,9 @@ namespace MusicPlayer {
         var trackRow = (TrackRow)item;
         if (trackRow.PlaylistCheckBoxIsEnabled) {
           trackRow.IsAddPlaylist = true;
+          if (trackRow.PlaylistCheckBoxIsEnabled) {
+            trackRow.IsAddPlaylist = false;
+          }
         }
       }
     }
@@ -447,19 +462,25 @@ namespace MusicPlayer {
 
 
     private void tracksDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e) {
-      var selectedIndex = TracksDataGrid.SelectedIndex;
-      if (selectedIndex<0) return;
+      //var selectedIndex = TracksDataGrid.SelectedIndex;
+      //if (selectedIndex<0) return;
 
-      var dataGridCell = ((DependencyObject)e.OriginalSource).FindVisualParentOfType<DataGridCell>();
-      if (dataGridCell is null) return;
+      //var dataGridCell = ((DependencyObject)e.OriginalSource).FindVisualParentOfType<DataGridCell>();
+      //if (dataGridCell is null) return;
 
-      if (dataGridCell.Column.DisplayIndex==11) return;
+      //if (dataGridCell.Column.DisplayIndex==11) return;
 
-      this.TrackPlayer.Play(((TrackRow)TracksDataGrid.Items[selectedIndex]).Track);
+      //this.TrackPlayer.Play(((TrackRow)TracksDataGrid.Items[selectedIndex]).Track);
+      var playinglist = getPlayinglist();
+      if (playinglist is not null) {
+        TrackPlayer.Play(playinglist);
+      }
     }
 
 
-    private void trackPlayer_TrackChanged(Track track) {
+    private void trackPlayer_TrackChanged(Track? track) {
+      if (track is null) return;
+
       for (int itemIndex = 0; itemIndex < TracksDataGrid.Items.Count; itemIndex++) {
         var trackRow = (TrackRow)TracksDataGrid.Items[itemIndex];
         if (trackRow.Track==track) {
@@ -471,17 +492,39 @@ namespace MusicPlayer {
     }
 
 
-    private Track getCurrentTrack() {
-      return ((TrackRow)TracksDataGrid.SelectedItem).Track;
-    }
+    //private Track getCurrentTrack() {
+    //  return ((TrackRow)TracksDataGrid.SelectedItem).Track;
+    //}
 
 
-    private Track getNextTrack() {
-      var trackIndex = TracksDataGrid.SelectedIndex + 1;
-      if (trackIndex>=TracksDataGrid.Items.Count) {
-        trackIndex = 0;
+    //private Track getNextTrack() {
+    //  var trackIndex = TracksDataGrid.SelectedIndex + 1;
+    //  if (trackIndex>=TracksDataGrid.Items.Count) {
+    //    trackIndex = 0;
+    //  }
+    //  return ((TrackRow)TracksDataGrid.Items[trackIndex]).Track;
+    //}
+
+
+    private Playinglist? getPlayinglist() {
+      if (TracksDataGrid.SelectedItems.Count==0) {
+        System.Diagnostics.Debugger.Break();
+        return null;
+      } else if (TracksDataGrid.SelectedItems.Count==1) {
+        var tracks = new List<Track>();
+        for (int rowIndex = TracksDataGrid.SelectedIndex; rowIndex<TracksDataGrid.Items.Count; rowIndex++) {
+          tracks.Add(((TrackRow)TracksDataGrid.Items[rowIndex]).Track);
+        }
+        for (int rowIndex = 0; rowIndex<TracksDataGrid.SelectedIndex; rowIndex++) {
+          tracks.Add(((TrackRow)TracksDataGrid.Items[rowIndex]).Track);
+        }
+        return new Playinglist(tracks);
+      } else {
+        var trackQuery =
+          from object gridItem in TracksDataGrid.SelectedItems
+          select ((TrackRow)gridItem).Track;
+        return new Playinglist(trackQuery);
       }
-      return ((TrackRow)TracksDataGrid.Items[trackIndex]).Track;
     }
 
 

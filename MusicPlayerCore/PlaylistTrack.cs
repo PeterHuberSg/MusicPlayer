@@ -76,7 +76,7 @@ namespace MusicPlayer  {
     /// Called after all properties of PlaylistTrack are updated, but before the HasChanged event gets raised
     /// </summary>
     //partial void onUpdating(Playlist playlist, Track track, ref bool isCancelled){
-   //}
+    //}
 
 
     /// <summary>

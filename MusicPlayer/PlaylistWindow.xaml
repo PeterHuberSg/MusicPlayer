@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MusicPlayer"
         mc:Ignorable="d"
-        Title="PlaylistWindow" WindowState="Maximized">
+        Title="PlaylistWindow" WindowState="Maximized" d:Width="1200">
   <Window.Resources>
     <CollectionViewSource x:Key="TracksViewSource" CollectionViewType="ListCollectionView"/>
   </Window.Resources>
@@ -45,8 +45,8 @@
         <ColumnDefinition Width="*"/>
         <ColumnDefinition Width="*"/>
         <ColumnDefinition Width="*"/>
-        <ColumnDefinition Width="*"/>
         <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="*"/>
         <ColumnDefinition Width="Auto"/>
         <ColumnDefinition Width="Auto"/>
         <ColumnDefinition Width="Auto"/>
@@ -116,14 +116,14 @@
               ToolTip="Marks all tracks to be included into the other playlist."/>
       <Button Grid.Row="1" Grid.Column="13" x:Name="UnselectAllButton" Content="_Unselect"
               ToolTip="Unselects all tracks selected for removal or inclusion to the other playlist."/>
-      <Button Grid.Row="0" Grid.Column="14" Grid.RowSpan="2" x:Name="RemoveButton" Content="Execute&#10;_Remove" 
+      <Button Grid.Row="0" Grid.Column="14" Grid.RowSpan="2" x:Name="ExecuteRemoveButton" Content="Execute&#10;_Remove" 
               VerticalAlignment="Stretch" Margin="2,1,2,4" ToolTip="Remove the tracks marked for removal from this playlist."/>
 
       <Rectangle Grid.Row="0" Grid.Column="16" Grid.RowSpan="2" Grid.ColumnSpan="2" Fill="LightCoral"/>
-      <Label Grid.Row="0" Grid.Column="16" Target="{Binding ElementName=AddToPlaylistComboBox}" Content="_Playlist:"/>
+      <Label Grid.Row="0" Grid.Column="16" Target="{Binding ElementName=AddToPlaylistComboBox}" Content="Other _Playlist:"/>
       <ComboBox Grid.Row="1" Grid.Column="16" x:Name="AddToPlaylistComboBox" IsEditable="True"
                 ToolTip="Select an existing or enter a new playlist to which the tracks should get added."/>
-      <Button Grid.Row="1" Grid.Column="17" x:Name="AddToPlaylistButton" Content="_Add to Playlist"
+      <Button Grid.Row="1" Grid.Column="17" x:Name="AddToPlaylistButton" Content="_Add to other"
               ToolTip="Add the tracks marked in the PList column to the selected playlist."/>
     </Grid>
 
@@ -139,12 +139,13 @@
       </Grid.RowDefinitions>
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*"/>
-        <ColumnDefinition Width="auto"/>
+        <ColumnDefinition Width="19.6"/>
+        <ColumnDefinition Width="24.4"/>
       </Grid.ColumnDefinitions>
       <DataGrid Grid.Row="0" Grid.Column="0" Grid.RowSpan="7" x:Name="TracksDataGrid"
               DataContext="{StaticResource TracksViewSource}" ItemsSource="{Binding}" AutoGenerateColumns="False" 
               EnableRowVirtualization="True" RowDetailsVisibilityMode="Collapsed" EnableColumnVirtualization="False"
-              AllowDrop="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False">
+              AllowDrop="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" Margin="0,0,0,-108">
         <DataGrid.Resources>
           <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="Blue"/>
           <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="Blue"/>
@@ -181,23 +182,23 @@
           <DataGridTextColumn Binding="{Binding Path=Track.Location.Name}" Header="Location" IsReadOnly="True" Width="2*"/>
           <DataGridCheckBoxColumn Binding="{Binding Path=IsRemovale, UpdateSourceTrigger=PropertyChanged}" Header="Remove" 
                                 ElementStyle="{StaticResource OneClickCheckBoxStyle}"/>
-          <DataGridCheckBoxColumn Binding="{Binding Path=IsAddPlaylist, UpdateSourceTrigger=PropertyChanged}" Header="Remove" 
+          <DataGridCheckBoxColumn Binding="{Binding Path=IsAddPlaylist, UpdateSourceTrigger=PropertyChanged}" Header="Add PL" 
                                 ElementStyle="{StaticResource OneClickCheckBoxStyle}"/>
         </DataGrid.Columns>
       </DataGrid>
-      <TextBlock Grid.Row="0" Grid.Column="1" Text="Move&#xA;Track" FontWeight="Bold" Background="Violet"/>
+      <TextBlock Grid.Row="0" Grid.Column="1" Text="Move&#xA;Track" FontWeight="Bold" Background="Violet" Grid.ColumnSpan="2" Margin="0,0,0,25" Grid.RowSpan="2"/>
       <local:ArrowButton Grid.Row="1" Grid.Column="1" x:Name="BeginningButton" ButtonType="1" 
-              ToolTip="Click here to move the selected rows to the beginning of all rows. Only available when column '#' is active for sorting."/>
-      <local:ArrowButton Grid.Row="2" Grid.Column="1" x:Name="UpPageButton" ButtonType="2" 
-              ToolTip="Click here to move the selected rows one page higher. Only available when column '#' is active for sorting."/>
-      <local:ArrowButton Grid.Row="3" Grid.Column="1" x:Name="UpRowButton" ButtonType="3" 
-              ToolTip="Click here to move the selected rows one row higher. Only available when column '#' is active for sorting."/>
-      <local:ArrowButton Grid.Row="4" Grid.Column="1" x:Name="DownRowButton" ButtonType="4"
-              ToolTip="Click here to move the selected rows one row lower. Only available when column '#' is active for sorting."/>
-      <local:ArrowButton Grid.Row="5" Grid.Column="1" x:Name="DownPageButton" ButtonType="5" 
-              ToolTip="Click here to move the selected rows one page lower. Only available when column '#' is active for sorting."/>
+              ToolTip="Click here to move the selected rows to the beginning of all rows. Only available when column '#' is active for sorting." Grid.ColumnSpan="2" Margin="0,0,0,19" Grid.RowSpan="3"/>
+      <local:ArrowButton Grid.Row="3" Grid.Column="1" x:Name="UpPageButton" ButtonType="2" 
+              ToolTip="Click here to move the selected rows one page higher. Only available when column '#' is active for sorting." Grid.ColumnSpan="2" Margin="0,6,0,14" Grid.RowSpan="2"/>
+      <local:ArrowButton Grid.Row="4" Grid.Column="1" x:Name="UpRowButton" ButtonType="3" 
+              ToolTip="Click here to move the selected rows one row higher. Only available when column '#' is active for sorting." Grid.ColumnSpan="2" Margin="0,10,0,8" Grid.RowSpan="3"/>
+      <local:ArrowButton Grid.Row="6" Grid.Column="1" x:Name="DownRowButton" ButtonType="4"
+              ToolTip="Click here to move the selected rows one row lower. Only available when column '#' is active for sorting." Grid.ColumnSpan="2" Margin="0,17,0,-36"/>
+      <local:ArrowButton Grid.Row="6" Grid.Column="1" x:Name="DownPageButton" ButtonType="5" 
+              ToolTip="Click here to move the selected rows one page lower. Only available when column '#' is active for sorting." Grid.ColumnSpan="2" Margin="0,61,0,-64"/>
       <local:ArrowButton Grid.Row="6" Grid.Column="1" x:Name="EndButton"  ButtonType="6" 
-              ToolTip="Click here to move the selected rows to the end of all rows. Only available when column '#' is active for sorting."/>
+              ToolTip="Click here to move the selected rows to the end of all rows. Only available when column '#' is active for sorting." Grid.ColumnSpan="2" Margin="0,89,0,-108"/>
     </Grid>
 
     <Rectangle Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Fill="Gainsboro"/>

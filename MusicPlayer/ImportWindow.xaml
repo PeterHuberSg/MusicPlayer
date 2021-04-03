@@ -17,7 +17,6 @@
       <RowDefinition Height="*"/>
       <RowDefinition Height="auto"/>
       <RowDefinition Height="auto"/>
-      <RowDefinition/>
     </Grid.RowDefinitions>
     
     <DockPanel Grid.Row="0" Grid.Column="0" Background="Gainsboro">
@@ -227,7 +226,5 @@
     </DockPanel>
 
     <local:PlayerControl Grid.Row="4" Grid.Column="0" x:Name="TrackPlayer"/>
-
-    <TextBox Grid.Row="5" Grid.Column="0" x:Name="TraceTextBox" VerticalScrollBarVisibility="Visible"/>
   </Grid>
 </Window>

@@ -546,6 +546,7 @@
       <ColumnDefinition Width="auto"/>
       <ColumnDefinition Width="auto"/>
       <ColumnDefinition Width="auto"/>
+      <ColumnDefinition Width="auto"/>
       <!--<ColumnDefinition Width="auto"/>-->
       <ColumnDefinition Width="auto"/>
       <ColumnDefinition Width="auto"/>
@@ -577,21 +578,22 @@
     </Viewbox>
 
     <local:PlayerButton Grid.Column="2" x:Name="PlayButton" Type="Play"/>
-    <local:PlayerButton Grid.Column="3" x:Name="NextButton" Type="Next"/>
+    <local:PlayerButton Grid.Column="3" x:Name="PauseButton" Type="Pause" IsEnabled="False"/>
+    <local:PlayerButton Grid.Column="4" x:Name="NextButton" Type="Next" IsEnabled="False"/>
     <!--<local:PlayerButton Grid.Column="4" x:Name="RepeatButton" Type="Repeat"/>-->
-    <local:PlayerButton Grid.Column="4" x:Name="RandomButton" Type="Random"/>
-    <Border Grid.Column="5" BorderBrush="#FF61007F" BorderThickness="1.5" Margin="5" VerticalAlignment="Center" >
+    <local:PlayerButton Grid.Column="5" x:Name="ShuffleButton" Type="Random"/>
+    <Border Grid.Column="6" BorderBrush="#FF61007F" BorderThickness="1.5" Margin="5" VerticalAlignment="Center" >
       <ScrollBar x:Name="PositionScrollBar" Width="140" Height="22"
                Orientation="Horizontal" Background="White" LargeChange="0" SmallChange="10000"
                Style="{DynamicResource ScrollBarStyleMusicPlayer}"/>
     </Border>
-    <TextBox Grid.Column="6" x:Name="InfoTextBox" MinWidth="200" Margin="5" VerticalAlignment="Center" Height="24.5" 
+    <TextBox Grid.Column="7" x:Name="InfoTextBox" MinWidth="200" Margin="5" VerticalAlignment="Center" Height="24.5" 
              BorderBrush="#FF61007F" BorderThickness="1.5"/>
-    <Slider Style="{DynamicResource SliderStyleMusicPlayer}" Grid.Column="7" x:Name="VolumeSlider" Width="140" Margin="5" VerticalAlignment="Center" Height="22"
+    <Slider Style="{DynamicResource SliderStyleMusicPlayer}" Grid.Column="8" x:Name="VolumeSlider" Width="140" Margin="5" VerticalAlignment="Center" Height="22"
                Orientation="Horizontal" TickPlacement ="BottomRight" Foreground="Black"
                Minimum="0" Maximum="1" Value="0.5" SmallChange="0.01" LargeChange="0.1">
       <Slider.Ticks>0 .2 .4 .6 .8 1</Slider.Ticks>
     </Slider>
-    <local:PlayerButton Grid.Column="8" x:Name="MuteButton" Type="Mute"/>
+    <local:PlayerButton Grid.Column="9" x:Name="MuteButton" Type="Mute"/>
   </Grid>
 </UserControl>

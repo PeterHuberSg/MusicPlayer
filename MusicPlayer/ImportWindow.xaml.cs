@@ -84,14 +84,6 @@ namespace MusicPlayer {
       Closed += memberWindow_Closed;
 
       MainWindow.Register(this, "Import");
-
-      Player.Current!.Traced += importWindow_Traced;
-    }
-
-
-    private void importWindow_Traced(string trace) {
-      TraceTextBox.Text += Environment.NewLine + trace;
-      TraceTextBox.ScrollToEnd();
     }
     #endregion
 
@@ -309,7 +301,7 @@ namespace MusicPlayer {
         playlists.Insert(0, "");
         PlaylistComboBox.ItemsSource = playlists;
 
-        TrackPlayer.Init(getCurrentTrack, getNextTrack);
+        TrackPlayer.Init(getPlayinglist);
 
         ImportButton.IsEnabled = true;
         updatePlaylistCheckBoxes();
@@ -697,7 +689,11 @@ namespace MusicPlayer {
 
       if (dataGridCell.Column.DisplayIndex>=10) return; //checkboxes
 
-      this.TrackPlayer.Play(((TrackRow)TracksDataGrid.Items[selectedIndex]).Track);
+      //this.TrackPlayer.Play(((TrackRow)TracksDataGrid.Items[selectedIndex]).Track);
+      var playinglist = getPlayinglist();
+      if (playinglist is not null) {
+        TrackPlayer.Play(playinglist);
+      }
     }
 
 
@@ -711,7 +707,7 @@ namespace MusicPlayer {
 
     private void renameSelectedTrack() {
       Track track = ((TrackRow)TracksDataGrid.SelectedItem).Track;
-      TrackPlayer.CloseIfSelected(track);
+      TrackPlayer.StopTrackIfPlaying(track);
       TrackRenameWindow.Show(this, track, updateSelectedItem);
     }
 
@@ -723,7 +719,7 @@ namespace MusicPlayer {
 
     private void renameMenuItem_Click(object sender, RoutedEventArgs e) {
       Track track = ((TrackRow)TracksDataGrid.SelectedItem).Track;
-      TrackPlayer.CloseIfSelected(track);
+      TrackPlayer.StopTrackIfPlaying(track);
       TrackRenameWindow.Show(this, track, updateSelectedItem);
     }
 
@@ -733,10 +729,34 @@ namespace MusicPlayer {
       tracksViewSource.View.Refresh();
       TracksDataGrid.SelectedIndex = selectedIndex;
     }
+
+
+    private Playinglist? getPlayinglist() {
+      if (TracksDataGrid.SelectedItems.Count==0) {
+        System.Diagnostics.Debugger.Break();
+        return null;
+      } else if (TracksDataGrid.SelectedItems.Count==1) {
+        var tracks = new List<Track>();
+        for (int rowIndex = TracksDataGrid.SelectedIndex; rowIndex<TracksDataGrid.Items.Count; rowIndex++) {
+          tracks.Add(((TrackRow)TracksDataGrid.Items[rowIndex]).Track);
+        }
+        for (int rowIndex = 0; rowIndex<TracksDataGrid.SelectedIndex; rowIndex++) {
+          tracks.Add(((TrackRow)TracksDataGrid.Items[rowIndex]).Track);
+        }
+        return new Playinglist(tracks);
+      } else {
+        var trackQuery =
+          from object gridItem in TracksDataGrid.SelectedItems
+          select ((TrackRow)gridItem).Track;
+        return new Playinglist(trackQuery);
+      }
+    }
     #endregion
 
 
-    private void trackPlayer_TrackChanged(Track track) {
+    private void trackPlayer_TrackChanged(Track? track) {
+      if (track is null) return;
+
       for (int itemIndex = 0; itemIndex < TracksDataGrid.Items.Count; itemIndex++) {
         var trackRow = (TrackRow)TracksDataGrid.Items[itemIndex];
         if (trackRow.Track==track) {
@@ -811,7 +831,6 @@ namespace MusicPlayer {
 
     private void memberWindow_Closed(object? sender, EventArgs e) {
       TrackPlayer.TrackChanged -= trackPlayer_TrackChanged;
-      Player.Current!.Traced -= importWindow_Traced;
 
       refreshOwner?.Invoke();
       Owner?.Activate();

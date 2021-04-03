@@ -52,10 +52,21 @@ namespace MusicPlayer {
   }
 
 
+  /// <summary>
+  /// User generated list of tracks which should be played together
+  /// </summary>
   public class PlaylistTrack {
     public Playlist Playlist;
     public Track Track;
     public int TrackNo;
   }
 
+
+  /// <summary>
+  /// List tracking per Playlist which tracks have not been played yet
+  /// </summary>
+  public class PlayinglistTrack {
+    [StorageProperty(needsDictionary: true)]
+    public int PlaylistTrackKey;
+  }
 }

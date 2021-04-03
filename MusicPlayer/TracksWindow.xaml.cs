@@ -64,7 +64,7 @@ namespace MusicPlayer {
       DeleteAllButton.Click += deleteAllButton_Click;
       PLAllButton.Click += plAllButton_Click;
       UnselectAllButton.Click += unselectAllButton_Click;
-      DeleteButton.Click += deleteButton_Click;
+      ExecuteDeleteButton.Click += executeDeleteButton_Click;
       AddToPlaylistButton.Click += addToPlaylistButton_Click;
       RenameTrackButton.Click += renameTrackButton_Click;
 
@@ -100,7 +100,7 @@ namespace MusicPlayer {
       updateSelectedCountTextBox();
 
       TrackPlayer.TrackChanged += trackPlayer_TrackChanged;
-      TrackPlayer.Init(getCurrentTrack, getNextTrack);
+      TrackPlayer.Init(getPlayinglist);
       Closed += memberWindow_Closed;
 
       MainWindow.Register(this, "Tracks");
@@ -186,8 +186,8 @@ namespace MusicPlayer {
       }
       bool playlistCheckBoxIsEnabled;
 
-
-      public event PropertyChangedEventHandler? PropertyChanged;
+      //todo: remove unuser (?) PropertyChanged event
+      public event PropertyChangedEventHandler? PropertyChanged;//**--
 
 
 #pragma warning disable CA2211 // Non-constant fields should not be visible
@@ -203,6 +203,7 @@ namespace MusicPlayer {
 
         isDeletion = false;
       }
+
 
       public void UpdatePlaylists() {
         Playlists = null;
@@ -323,9 +324,9 @@ namespace MusicPlayer {
       foreach (var item in TracksDataGrid.Items) {
         var trackRow = (TrackRow)item;
         trackRow.IsDeletion = true;
-        if (trackRow.PlaylistCheckBoxIsEnabled) {
-          trackRow.IsAddPlaylist = true;
-        }
+        //if (trackRow.PlaylistCheckBoxIsEnabled) {
+        //  trackRow.IsAddPlaylist = true;
+        //}
       }
       tracksViewSource.View.Refresh();
     }
@@ -518,7 +519,7 @@ namespace MusicPlayer {
     }
 
 
-    private void deleteButton_Click(object sender, RoutedEventArgs e) {
+    private void executeDeleteButton_Click(object sender, RoutedEventArgs e) {
       var result = MessageBox.Show($"Do you want to delete {deletionCount} track(s) ?", "Deletion", MessageBoxButton.YesNo,
         MessageBoxImage.Question, MessageBoxResult.No);
       if (result==MessageBoxResult.Yes) {
@@ -539,15 +540,19 @@ namespace MusicPlayer {
 
 
     private void tracksDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e) {
-      var selectedIndex = TracksDataGrid.SelectedIndex;
-      if (selectedIndex<0) return;
+      //var selectedIndex = TracksDataGrid.SelectedIndex;
+      //if (selectedIndex<0) return;
 
-      var dataGridCell = ((DependencyObject)e.OriginalSource).FindVisualParentOfType<DataGridCell>();
-      if (dataGridCell is null) return;
+      //var dataGridCell = ((DependencyObject)e.OriginalSource).FindVisualParentOfType<DataGridCell>();
+      //if (dataGridCell is null) return;
 
-      if (dataGridCell.Column.DisplayIndex==11) return;
+      //if (dataGridCell.Column.DisplayIndex==11) return;
 
-      this.TrackPlayer.Play(((TrackRow)TracksDataGrid.Items[selectedIndex]).Track);
+      //TrackPlayer.Play(((TrackRow)TracksDataGrid.Items[selectedIndex]).Track);
+      var playinglist = getPlayinglist();
+      if (playinglist is not null) {
+        TrackPlayer.Play(playinglist);
+      }
     }
 
 
@@ -561,7 +566,7 @@ namespace MusicPlayer {
 
     private void renameSeletctedTrack() {
       Track track = ((TrackRow)TracksDataGrid.SelectedItem).Track;
-      TrackPlayer.CloseIfSelected(track);
+      TrackPlayer.StopTrackIfPlaying(track);
       TrackRenameWindow.Show(this, track, updateSelectedItem);
     }
 
@@ -573,7 +578,7 @@ namespace MusicPlayer {
 
     private void renameMenuItem_Click(object sender, RoutedEventArgs e) {
       Track track = ((TrackRow)TracksDataGrid.SelectedItem).Track;
-      TrackPlayer.CloseIfSelected(track);
+      TrackPlayer.StopTrackIfPlaying(track);
       TrackRenameWindow.Show(this, track, updateSelectedItem);
     }
 
@@ -585,7 +590,9 @@ namespace MusicPlayer {
     }
 
 
-    private void trackPlayer_TrackChanged(Track track) {
+    private void trackPlayer_TrackChanged(Track? track) {
+      if (track is null) return;
+
       for (int itemIndex = 0; itemIndex < TracksDataGrid.Items.Count; itemIndex++) {
         var trackRow = (TrackRow)TracksDataGrid.Items[itemIndex];
         if (trackRow.Track==track) {
@@ -642,18 +649,35 @@ namespace MusicPlayer {
     #region Methods
     //      -------
 
-    private Track getCurrentTrack() {
-      return ((TrackRow)TracksDataGrid.SelectedItem).Track;
-    }
-
-
-    private Track getNextTrack() {
-      var trackIndex = TracksDataGrid.SelectedIndex + 1;
-      if (trackIndex>=TracksDataGrid.Items.Count) {
-        trackIndex = 0;
+    private Playinglist? getPlayinglist() {
+      if (TracksDataGrid.SelectedItems.Count==0) {
+        System.Diagnostics.Debugger.Break();
+        return null;
+      } else if (TracksDataGrid.SelectedItems.Count==1) {
+        var tracks = new List<Track>();
+        for (int rowIndex = TracksDataGrid.SelectedIndex; rowIndex<TracksDataGrid.Items.Count; rowIndex++) {
+          tracks.Add(((TrackRow)TracksDataGrid.Items[rowIndex]).Track);
+        }
+        for (int rowIndex = 0; rowIndex<TracksDataGrid.SelectedIndex; rowIndex++) {
+          tracks.Add(((TrackRow)TracksDataGrid.Items[rowIndex]).Track);
+        }
+        return new Playinglist(tracks);
+      } else {
+        var trackQuery =
+          from object gridItem in TracksDataGrid.SelectedItems
+          select ((TrackRow)gridItem).Track;
+        return new Playinglist(trackQuery);
       }
-      return ((TrackRow)TracksDataGrid.Items[trackIndex]).Track;
     }
+
+
+    //private Track getNextTrack() {
+    //  var trackIndex = TracksDataGrid.SelectedIndex + 1;
+    //  if (trackIndex>=TracksDataGrid.Items.Count) {
+    //    trackIndex = 0;
+    //  }
+    //  return ((TrackRow)TracksDataGrid.Items[trackIndex]).Track;
+    //}
     #endregion
   }
 }

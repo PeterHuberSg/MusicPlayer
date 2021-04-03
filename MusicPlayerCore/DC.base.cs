@@ -71,6 +71,18 @@ namespace MusicPlayer  {
     internal Dictionary<string, Location> _LocationsByPathLower { get; private set; }
 
     /// <summary>
+    /// Directory of all PlayinglistTracks
+    /// </summary>
+    public IReadonlyDataStore<PlayinglistTrack> PlayinglistTracks => _PlayinglistTracks;
+    internal DataStore<PlayinglistTrack> _PlayinglistTracks { get; private set; }
+
+    /// <summary>
+    /// Directory of all PlayinglistTracks by PlaylistTrackKey
+    /// </summary>
+    public IReadOnlyDictionary<int, PlayinglistTrack> PlayinglistTracksByPlaylistTrackKey => _PlayinglistTracksByPlaylistTrackKey;
+    internal Dictionary<int, PlayinglistTrack> _PlayinglistTracksByPlaylistTrackKey { get; private set; }
+
+    /// <summary>
     /// Directory of all Playlists
     /// </summary>
     public IReadonlyDataStore<Playlist> Playlists => _Playlists;
@@ -116,7 +128,7 @@ namespace MusicPlayer  {
     /// program terminates. With csvConfig defined, existing data gets read at startup, changes get immediately
     /// written and Dispose() ensures by flushing that all data is permanently stored.
     /// </summary>
-    public DC(CsvConfig? csvConfig): base(DataStoresCount: 4) {
+    public DC(CsvConfig? csvConfig): base(DataStoresCount: 5) {
       data = this;
       IsInitialised = false;
 
@@ -129,6 +141,7 @@ namespace MusicPlayer  {
       onConstructing(backupResult);
 
       _LocationsByPathLower = new Dictionary<string, Location>();
+      _PlayinglistTracksByPlaylistTrackKey = new Dictionary<int, PlayinglistTrack>();
       _PlaylistsByNameLower = new Dictionary<string, Playlist>();
       _TracksByTitleArtists = new Dictionary<string, Track>();
       if (csvConfig==null) {
@@ -183,6 +196,19 @@ namespace MusicPlayer  {
           areInstancesReleasable: true);
         DataStores[3] = _PlaylistTracks;
         onPlaylistTracksFilled();
+
+        _PlayinglistTracks = new DataStore<PlayinglistTrack>(
+          this,
+          4,
+          PlayinglistTrack.SetKey,
+          PlayinglistTrack.RollbackItemNew,
+          PlayinglistTrack.RollbackItemStore,
+          PlayinglistTrack.RollbackItemUpdate,
+          PlayinglistTrack.RollbackItemRelease,
+          areInstancesUpdatable: true,
+          areInstancesReleasable: true);
+        DataStores[4] = _PlayinglistTracks;
+        onPlayinglistTracksFilled();
 
       } else {
         IsPartiallyNew = false;
@@ -274,6 +300,28 @@ namespace MusicPlayer  {
         DataStores[3] = _PlaylistTracks;
         onPlaylistTracksFilled();
 
+        _PlayinglistTracks = new DataStoreCSV<PlayinglistTrack>(
+          this,
+          4,
+          csvConfig!,
+          PlayinglistTrack.EstimatedLineLength,
+          PlayinglistTrack.Headers,
+          PlayinglistTrack.SetKey,
+          PlayinglistTrack.Create,
+          null,
+          PlayinglistTrack.Update,
+          PlayinglistTrack.Write,
+          PlayinglistTrack.RollbackItemNew,
+          PlayinglistTrack.RollbackItemStore,
+          PlayinglistTrack.RollbackItemUpdate,
+          PlayinglistTrack.RollbackItemRelease,
+          areInstancesUpdatable: true,
+          areInstancesReleasable: true);
+        IsPartiallyNew |= _PlayinglistTracks.IsNew;
+        IsNew &= _PlayinglistTracks.IsNew;
+        DataStores[4] = _PlayinglistTracks;
+        onPlayinglistTracksFilled();
+
       }
       onConstructed();
       IsInitialised = true;
@@ -308,6 +356,11 @@ namespace MusicPlayer  {
     /// Called once the data for PlaylistTracks is read.
     /// </summary>}
     partial void onPlaylistTracksFilled();
+
+    /// <summary>}
+    /// Called once the data for PlayinglistTracks is read.
+    /// </summary>}
+    partial void onPlayinglistTracksFilled();
     #endregion
 
 
@@ -322,6 +375,9 @@ namespace MusicPlayer  {
     protected override void Dispose(bool disposing) {
       if (disposing) {
         onDispose();
+        _PlayinglistTracks?.Dispose();
+        _PlayinglistTracks = null!;
+        _PlayinglistTracksByPlaylistTrackKey = null!;
         _PlaylistTracks?.Dispose();
         _PlaylistTracks = null!;
         _Playlists?.Dispose();

@@ -8,6 +8,7 @@ namespace MusicPlayer {
 
 
   public partial class DC {
+
     #region Properties
     //      -----------
 
@@ -53,6 +54,9 @@ namespace MusicPlayer {
       UpdateTracksStats();
     }
 
+
+    #region Tracks details
+    //      --------------
 
     public void UpdatePlayListStrings() {
       playlistStrings.Clear();
@@ -204,7 +208,51 @@ namespace MusicPlayer {
           years.Add(yearKeyValue.Key.ToString());
         }
       }
-   }
+    }
+    #endregion
+
+
+    #region Playinglist
+    //      -----------
+
+    public readonly Dictionary<Playlist, Playinglist> Playinglists = new ();
+
+
+    partial void onPlayinglistTracksFilled() {
+      var playinglistQuery =
+        from playinglistTrack in PlayinglistTracks
+        group playinglistTrack by playinglistTrack.PlaylistTrack!.Playlist into playlistGroup
+        select playlistGroup;
+      foreach (var playlistGroup in playinglistQuery) {
+        var playinglist = new Playinglist(playlistGroup.OrderBy(pg=>pg.PlaylistTrack!.TrackNo));
+        Playinglists.Add(playinglist.Playlist!, playinglist);
+      }
+    }
+
+
+    /// <summary>
+    /// Create a Playinglist for a playlist
+    /// </summary>
+    public Playinglist AddPlayinglist(Playlist playlist) {
+      if (Playinglists.TryGetValue(playlist, out Playinglist? playinglist)) {
+        //release existing PlayinglistTracks
+        playinglist.Refill(playlist);
+      } else {
+        playinglist = new Playinglist(playlist.Tracks.OrderBy(pt => pt.TrackNo));
+      }
+      return playinglist;
+    }
+
+
+    /// <summary>
+    /// Add some tracks to a new Playinglist
+    /// </summary>
+    public Playinglist AddPlayinglist(IEnumerable<Track> tracks) {
+      return new Playinglist(tracks);
+    }
+
+
+    #endregion
     #endregion
   }
 }

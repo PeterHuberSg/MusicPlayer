@@ -19,4 +19,24 @@
     <ProjectReference Include="..\MusicPlayerCore\MusicPlayerCore.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Update="TestMediaPlayerWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="TestPlayerControlWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="TestMediaPlayerWindow.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="TestPlayerControlWindow.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+  </ItemGroup>
+
 </Project>

@@ -104,7 +104,7 @@
               ToolTip="Marks all tracks to be included into the selected playlist, if the track is not marked for deletion."/>
       <Button Grid.Row="1" Grid.Column="14" x:Name="UnselectAllButton" Content="_Unselect"
               ToolTip="Unselects all tracks selected for deletion or inclusion to playlist."/>
-      <Button Grid.Row="0" Grid.Column="15" Grid.RowSpan="2" x:Name="DeleteButton" Content="Execute&#10;_Delete" 
+      <Button Grid.Row="0" Grid.Column="15" Grid.RowSpan="2" x:Name="ExecuteDeleteButton" Content="Execute&#10;_Delete" 
               VerticalAlignment="Stretch" Margin="2,1,2,4" ToolTip="Delete the tracks marked for deletion."/>
       
       <Rectangle Grid.Row="0" Grid.Column="17" Grid.RowSpan="2" Grid.ColumnSpan="2" Fill="LightCoral"/>

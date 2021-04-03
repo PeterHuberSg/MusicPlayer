@@ -16,6 +16,9 @@ using StorageLib;
 namespace MusicPlayer  {
 
 
+    /// <summary>
+    /// User generated list of tracks which should be played together
+    /// </summary>
   public partial class PlaylistTrack: IStorageItem<PlaylistTrack> {
 
     #region Properties
