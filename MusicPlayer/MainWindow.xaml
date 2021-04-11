@@ -7,6 +7,7 @@
         mc:Ignorable="d"
         Title="Peter's Music Player" Height="700" Width="1200" WindowState="Maximized">
   <Window.Resources>
+    <CollectionViewSource x:Key="PlayListsViewSource" CollectionViewType="ListCollectionView"/>
     <CollectionViewSource x:Key="PlayListViewSource" CollectionViewType="ListCollectionView"/>
   </Window.Resources>
 
@@ -17,24 +18,18 @@
       <RowDefinition Height="auto"/>
       <RowDefinition Height="auto"/>
     </Grid.RowDefinitions>
-    <!--<Grid.ColumnDefinitions>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="*"/>
       <ColumnDefinition Width="auto"/>
-      <ColumnDefinition Width="100"/>
-      <ColumnDefinition Width="200"/>
-      <ColumnDefinition/>
-    </Grid.ColumnDefinitions>-->
+      <ColumnDefinition Width="3*"/>
+    </Grid.ColumnDefinitions>
 
-    <Menu Grid.Row="0" Grid.Column="0" x:Name="MainMenu"/>
+    <Menu Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" x:Name="MainMenu"/>
 
     <DataGrid Grid.Row="1" Grid.Column="0" Name="PlayListsDataGrid" 
-              DataContext="{StaticResource PlayListViewSource}" ItemsSource="{Binding}" AutoGenerateColumns="False" 
+              DataContext="{StaticResource PlayListsViewSource}" ItemsSource="{Binding}" AutoGenerateColumns="False" 
               EnableRowVirtualization="True" RowDetailsVisibilityMode="Collapsed" EnableColumnVirtualization="False"
               AllowDrop="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False">
-      <!--<DataGrid.ContextMenu>
-        <ContextMenu Name="test">
-          <MenuItem Name="ShowInYahooMenuItem"  Header="Show in _Yahoo" Click="showInYahooMenuItem_Click"/>
-        </ContextMenu>
-      </DataGrid.ContextMenu>-->
       <DataGrid.Resources>
         <Style x:Key="RightAlignStyle" TargetType="TextBlock">
           <Setter Property="HorizontalAlignment" Value="Right" />
@@ -52,23 +47,62 @@
         </Style>
       </DataGrid.RowStyle>-->
       <DataGrid.Columns>
-        <!--<DataGridTextColumn Binding="{Binding Path=No, StringFormat=N0}" Header="#"  
-                            ElementStyle="{StaticResource RightAlignStyle}" IsReadOnly="True" Width="45"/>-->
         <DataGridTextColumn Binding="{Binding Path=Name}" Header="Name" IsReadOnly="True" Width="200"/>
         <DataGridTextColumn Binding="{Binding Path=TracksCount}" Header="Tracks" 
                             ElementStyle="{StaticResource RightAlignStyle}" IsReadOnly="True" Width="SizeToHeader"/>
-        <DataGridTextColumn Binding="{Binding Path=TracksDuration, StringFormat=d\\d\\ hh\\h}" Header="Duration" 
+        <DataGridTextColumn Binding="{Binding Path=TracksDurationHhMm}" SortMemberPath="TracksDuration" Header="Duration" 
                             ElementStyle="{StaticResource RightAlignStyle}" IsReadOnly="True" Width="SizeToHeader"/>
-        <!--<DataGridTextColumn Binding="{Binding Path=Album}" Header="Album" IsReadOnly="True" Width="200"/>
-        <DataGridTextColumn Binding="{Binding Path=Artists}" Header="Artists" IsReadOnly="True" Width="200"/>
-        <DataGridTextColumn Binding="{Binding Path=Composers}" Header="Composers" IsReadOnly="True" Width="200"/>
-        <DataGridTextColumn Binding="{Binding Path=Genres}" Header="Genres" IsReadOnly="True" Width="200"/>
-        <DataGridTextColumn Binding="{Binding Path=Publisher}" Header="Publisher" IsReadOnly="True" Width="200"/>
-        <DataGridTextColumn Binding="{Binding Path=Year}" Header="Year   " IsReadOnly="True" Width="SizeToHeader"/>-->
       </DataGrid.Columns>
     </DataGrid>
-   
-    <StatusBar Grid.Row="2" Grid.Column="0" Name="MainStatusBar" Background="Pink">
+
+    <GridSplitter Grid.Row="1" Grid.Column="1" Width="5" VerticalAlignment="Stretch" 
+                  ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" >
+      <GridSplitter.Background>
+        <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+          <GradientStop Color="AntiqueWhite" Offset="0" />
+          <GradientStop Color="DarkGray" Offset="1" />
+        </LinearGradientBrush>
+      </GridSplitter.Background>
+    </GridSplitter>
+
+    <DataGrid Grid.Row="1" Grid.Column="2" Name="PlayListDataGrid" 
+              DataContext="{StaticResource PlayListViewSource}" ItemsSource="{Binding}" AutoGenerateColumns="False" 
+              EnableRowVirtualization="True" RowDetailsVisibilityMode="Collapsed" EnableColumnVirtualization="False"
+              AllowDrop="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" 
+              CanUserSortColumns="False" IsReadOnly="True">
+      <DataGrid.Resources>
+        <Style x:Key="RightAlignStyle" TargetType="TextBlock">
+          <Setter Property="HorizontalAlignment" Value="Right" />
+          <Setter Property="Margin" Value="2,0,2,0" />
+        </Style>
+      </DataGrid.Resources>
+      <!--<DataGrid.ColumnHeaderStyle>
+        <Style TargetType="DataGridColumnHeader">
+          <Setter Property="Background" Value="MidnightBlue"/>
+        </Style>
+      </DataGrid.ColumnHeaderStyle>-->
+      <!--<DataGrid.RowStyle>
+        <Style TargetType="DataGridRow">
+          <Setter Property="Background" Value="Black"/>
+        </Style>
+      </DataGrid.RowStyle>-->
+      <DataGrid.Columns>
+        <DataGridTextColumn Binding="{Binding Path=TrackNo, StringFormat=N0, Mode=OneWay}" Header="#"  
+                            ElementStyle="{StaticResource RightAlignStyle}" IsReadOnly="True" Width="45"/>
+        <DataGridTextColumn Binding="{Binding Path=Track.Title}" Header="Title" IsReadOnly="True" Width="3*"/>
+        <DataGridTextColumn Binding="{Binding Path=Track.Duration, StringFormat=mm\\:ss}" Header="Duration" 
+                            ElementStyle="{StaticResource RightAlignStyle}" IsReadOnly="True" Width="SizeToHeader"/>
+        <DataGridTextColumn Binding="{Binding Path=Track.Artists}" Header="Artists" IsReadOnly="True" Width="2*"/>
+        <DataGridTextColumn Binding="{Binding Path=Track.Album}" Header="Album" IsReadOnly="True" Width="2*"/>
+        <DataGridTextColumn Binding="{Binding Path=Track.AlbumTrack}" Header="Track" IsReadOnly="True" Width="SizeToHeader"/>
+        <DataGridTextColumn Binding="{Binding Path=Track.Composers}" Header="Composers" IsReadOnly="True" Width="*"/>
+        <DataGridTextColumn Binding="{Binding Path=Track.Publisher}" Header="Publisher" IsReadOnly="True" Width="*"/>
+        <DataGridTextColumn Binding="{Binding Path=Track.Genres}" Header="Genres" IsReadOnly="True" Width="*"/>
+        <DataGridTextColumn Binding="{Binding Path=Track.Year}" Header="Year   " IsReadOnly="True" Width="SizeToHeader"/>
+      </DataGrid.Columns>
+    </DataGrid>
+
+    <StatusBar Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Name="MainStatusBar" Background="Pink">
       <local:PlayerControl x:Name="TrackPlayer"/>
       <Separator/>
       <TextBox x:Name="StatusTextBox" IsReadOnly="True"/>
@@ -77,6 +111,7 @@
         <ComboBoxItem Name="RealComboBoxItem">Real</ComboBoxItem>
         <ComboBoxItem Name="TestComboBoxItem">Test</ComboBoxItem>
       </ComboBox>
+      <TextBox x:Name="PathTextBox" IsReadOnly="True"/>
       <Separator/>
     </StatusBar>
 

@@ -42,6 +42,9 @@ namespace MusicPlayer  {
     public string? Title { get; private set; }
 
 
+    public string? TitleLowerCase { get; private set; }
+
+
     /// <summary>
     /// Stores less than 24 hours with second precision.
     ///  </summary>
@@ -51,16 +54,28 @@ namespace MusicPlayer  {
     public string? Album { get; private set; }
 
 
+    public string? AlbumLowerCase { get; private set; }
+
+
     public int? AlbumTrack { get; private set; }
 
 
     public string? Artists { get; private set; }
 
 
+    public string? ArtistsLowerCase { get; private set; }
+
+
     public string? Composers { get; private set; }
 
 
+    public string? ComposersLowerCase { get; private set; }
+
+
     public string? Publisher { get; private set; }
+
+
+    public string? PublisherLowerCase { get; private set; }
 
 
     public int? Year { get; private set; }
@@ -165,12 +180,17 @@ namespace MusicPlayer  {
       FullFileName = fullFileName;
       Location = location;
       Title = title;
+      TitleLowerCase = Title?.ToLowerInvariant();
       Duration = duration.Round(Rounding.Seconds);
       Album = album;
+      AlbumLowerCase = Album?.ToLowerInvariant();
       AlbumTrack = albumTrack;
       Artists = artists;
+      ArtistsLowerCase = Artists?.ToLowerInvariant();
       Composers = composers;
+      ComposersLowerCase = Composers?.ToLowerInvariant();
       Publisher = publisher;
+      PublisherLowerCase = Publisher?.ToLowerInvariant();
       Year = year;
       Genres = genres;
       Weight = weight;
@@ -203,12 +223,17 @@ namespace MusicPlayer  {
       FullFileName = original.FullFileName;
       Location = original.Location;
       Title = original.Title;
+      TitleLowerCase = original.TitleLowerCase;
       Duration = original.Duration;
       Album = original.Album;
+      AlbumLowerCase = original.AlbumLowerCase;
       AlbumTrack = original.AlbumTrack;
       Artists = original.Artists;
+      ArtistsLowerCase = original.ArtistsLowerCase;
       Composers = original.Composers;
+      ComposersLowerCase = original.ComposersLowerCase;
       Publisher = original.Publisher;
+      PublisherLowerCase = original.PublisherLowerCase;
       Year = original.Year;
       Genres = original.Genres;
       Weight = original.Weight;
@@ -231,12 +256,17 @@ namespace MusicPlayer  {
       var locationKey = csvReader.ReadInt();
       Location = DC.Data._Locations.GetItem(locationKey)?? Location.NoLocation;
       Title = csvReader.ReadStringNull();
+      TitleLowerCase = Title?.ToLowerInvariant();
       Duration = csvReader.ReadTimeNull();
       Album = csvReader.ReadStringNull();
+      AlbumLowerCase = Album?.ToLowerInvariant();
       AlbumTrack = csvReader.ReadIntNull();
       Artists = csvReader.ReadStringNull();
+      ArtistsLowerCase = Artists?.ToLowerInvariant();
       Composers = csvReader.ReadStringNull();
+      ComposersLowerCase = Composers?.ToLowerInvariant();
       Publisher = csvReader.ReadStringNull();
+      PublisherLowerCase = Publisher?.ToLowerInvariant();
       Year = csvReader.ReadIntNull();
       Genres = csvReader.ReadStringNull();
       Weight = csvReader.ReadIntNull();
@@ -375,10 +405,12 @@ namespace MusicPlayer  {
       var isChangeDetected = false;
       if (Title!=title) {
         Title = title;
+        TitleLowerCase = Title?.ToLowerInvariant();
         isChangeDetected = true;
       }
       if (Album!=album) {
         Album = album;
+        AlbumLowerCase = Album?.ToLowerInvariant();
         isChangeDetected = true;
       }
       if (AlbumTrack!=albumTrack) {
@@ -387,14 +419,17 @@ namespace MusicPlayer  {
       }
       if (Artists!=artists) {
         Artists = artists;
+        ArtistsLowerCase = Artists?.ToLowerInvariant();
         isChangeDetected = true;
       }
       if (Composers!=composers) {
         Composers = composers;
+        ComposersLowerCase = Composers?.ToLowerInvariant();
         isChangeDetected = true;
       }
       if (Publisher!=publisher) {
         Publisher = publisher;
+        PublisherLowerCase = Publisher?.ToLowerInvariant();
         isChangeDetected = true;
       }
       if (Year!=year) {
@@ -483,6 +518,7 @@ namespace MusicPlayer  {
           track.ToString());
       }
       track.Title = csvReader.ReadStringNull();
+      track.TitleLowerCase = track.Title?.ToLowerInvariant();
       var duration = csvReader.ReadTimeNull();
       if (track.Duration!=duration) {
         throw new Exception($"Track.Update(): Property Duration '{track.Duration}' is " +
@@ -490,10 +526,14 @@ namespace MusicPlayer  {
           track.ToString());
       }
       track.Album = csvReader.ReadStringNull();
+      track.AlbumLowerCase = track.Album?.ToLowerInvariant();
       track.AlbumTrack = csvReader.ReadIntNull();
       track.Artists = csvReader.ReadStringNull();
+      track.ArtistsLowerCase = track.Artists?.ToLowerInvariant();
       track.Composers = csvReader.ReadStringNull();
+      track.ComposersLowerCase = track.Composers?.ToLowerInvariant();
       track.Publisher = csvReader.ReadStringNull();
+      track.PublisherLowerCase = track.Publisher?.ToLowerInvariant();
       track.Year = csvReader.ReadIntNull();
       track.Genres = csvReader.ReadStringNull();
       track.Weight = csvReader.ReadIntNull();
@@ -615,11 +655,16 @@ namespace MusicPlayer  {
 
       // updated item: restore old values
       item.Title = oldItem.Title;
+      item.TitleLowerCase = item.Title?.ToLowerInvariant();
       item.Album = oldItem.Album;
+      item.AlbumLowerCase = item.Album?.ToLowerInvariant();
       item.AlbumTrack = oldItem.AlbumTrack;
       item.Artists = oldItem.Artists;
+      item.ArtistsLowerCase = item.Artists?.ToLowerInvariant();
       item.Composers = oldItem.Composers;
+      item.ComposersLowerCase = item.Composers?.ToLowerInvariant();
       item.Publisher = oldItem.Publisher;
+      item.PublisherLowerCase = item.Publisher?.ToLowerInvariant();
       item.Year = oldItem.Year;
       item.Genres = oldItem.Genres;
       item.Weight = oldItem.Weight;
@@ -656,12 +701,17 @@ namespace MusicPlayer  {
         $" {FullFileName}|" +
         $" Location {Location.GetKeyOrHash()}|" +
         $" {Title}|" +
+        $" {TitleLowerCase}|" +
         $" {Duration}|" +
         $" {Album}|" +
+        $" {AlbumLowerCase}|" +
         $" {AlbumTrack}|" +
         $" {Artists}|" +
+        $" {ArtistsLowerCase}|" +
         $" {Composers}|" +
+        $" {ComposersLowerCase}|" +
         $" {Publisher}|" +
+        $" {PublisherLowerCase}|" +
         $" {Year}|" +
         $" {Genres}|" +
         $" {Weight}|" +
@@ -685,12 +735,17 @@ namespace MusicPlayer  {
         $" {FullFileName}," +
         $" {Location.ToShortString()}," +
         $" {Title}," +
+        $" {TitleLowerCase}," +
         $" {Duration}," +
         $" {Album}," +
+        $" {AlbumLowerCase}," +
         $" {AlbumTrack}," +
         $" {Artists}," +
+        $" {ArtistsLowerCase}," +
         $" {Composers}," +
+        $" {ComposersLowerCase}," +
         $" {Publisher}," +
+        $" {PublisherLowerCase}," +
         $" {Year}," +
         $" {Genres}," +
         $" {Weight}," +
@@ -714,12 +769,17 @@ namespace MusicPlayer  {
         $" FullFileName: {FullFileName}," +
         $" Location: {Location.ToShortString()}," +
         $" Title: {Title}," +
+        $" TitleLowerCase: {TitleLowerCase}," +
         $" Duration: {Duration}," +
         $" Album: {Album}," +
+        $" AlbumLowerCase: {AlbumLowerCase}," +
         $" AlbumTrack: {AlbumTrack}," +
         $" Artists: {Artists}," +
+        $" ArtistsLowerCase: {ArtistsLowerCase}," +
         $" Composers: {Composers}," +
+        $" ComposersLowerCase: {ComposersLowerCase}," +
         $" Publisher: {Publisher}," +
+        $" PublisherLowerCase: {PublisherLowerCase}," +
         $" Year: {Year}," +
         $" Genres: {Genres}," +
         $" Weight: {Weight}," +

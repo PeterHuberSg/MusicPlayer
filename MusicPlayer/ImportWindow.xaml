@@ -100,7 +100,7 @@
       <Label Grid.Row="0" Grid.Column="6" Target="{Binding ElementName=GenreComboBox}" Content="_Genre:"/>
       <ComboBox Grid.Row="1" Grid.Column="6" x:Name="GenreComboBox"/>
       <Label Grid.Row="0" Grid.Column="7" Target="{Binding ElementName=YearComboBox}" Content="_Year:"/>
-      <ComboBox Grid.Row="1" Grid.Column="7" x:Name="YearComboBox" Width="40"/>
+      <ComboBox Grid.Row="1" Grid.Column="7" x:Name="YearComboBox" Width="54"/>
       <Label Grid.Row="0" Grid.Column="8" Target="{Binding ElementName=ImportCheckBox}" Content="_Imp."/>
       <CheckBox Grid.Row="1" Grid.Column="8" x:Name="ImportCheckBox" IsThreeState="true" IsChecked="{x:Null}" 
                 ToolTip="Filter tracks which are marked for import or not."/>

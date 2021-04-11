@@ -2,6 +2,7 @@
 using StorageLib;
 using System.Collections.Generic;
 
+
 namespace MusicPlayer {
 
 
@@ -10,12 +11,22 @@ namespace MusicPlayer {
     public readonly string FullFileName;
     public readonly Location Location;
     public string? Title;
+    [StorageProperty(toLower: "Title")]
+    public string? TitleLowerCase;
     public readonly Time? Duration;
     public string? Album;
+    [StorageProperty(toLower: "Album")]
+    public string? AlbumLowerCase;
     public int? AlbumTrack;
     public string? Artists;
+    [StorageProperty(toLower: "Artists")]
+    public string? ArtistsLowerCase;
     public string? Composers;
+    [StorageProperty(toLower: "Composers")]
+    public string? ComposersLowerCase;
     public string? Publisher;
+    [StorageProperty(toLower: "Publisher")]
+    public string? PublisherLowerCase;
     public int? Year;
     public string? Genres;
     public int? Weight;

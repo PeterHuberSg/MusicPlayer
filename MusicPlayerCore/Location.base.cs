@@ -49,7 +49,7 @@ namespace MusicPlayer  {
     /// <summary>
     /// Headers written to first line in CSV file
     /// </summary>
-    internal static readonly string[] Headers = {"Key", "Path", "PathLower", "Name"};
+    internal static readonly string[] Headers = {"Key", "Path", "Name"};
 
 
     /// <summary>
@@ -86,7 +86,7 @@ namespace MusicPlayer  {
       Name = name;
       tracks = new StorageList<Track>();
       onConstruct();
-      if (DC.Data?.IsTransaction??false) {
+      if (DC.Data.IsTransaction) {
         DC.Data.AddTransaction(new TransactionItem(0,TransactionActivityEnum.New, Key, this));
       }
 
@@ -163,7 +163,7 @@ namespace MusicPlayer  {
     /// <summary>
     /// Estimated number of UTF8 characters needed to write Location to CSV file
     /// </summary>
-    public const int EstimatedLineLength = 450;
+    public const int EstimatedLineLength = 300;
 
 
     /// <summary>

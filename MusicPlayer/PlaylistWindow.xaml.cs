@@ -41,10 +41,9 @@ namespace MusicPlayer {
 
     readonly Playlist? playlist;
     readonly Action<Playlist>? refreshOwner;
-
     readonly System.Windows.Data.CollectionViewSource tracksViewSource;
     readonly List<Track> tracks;
-    readonly List<TrackRow> trackRows;
+    List<TrackRow> trackRows;
     readonly TrackRow? firstAddedTrackRow;
     readonly TimeSpan totalDuration;
     readonly List<string> locations;
@@ -66,6 +65,7 @@ namespace MusicPlayer {
       //tracks
       tracks = new();
       trackRows = new();
+      var trackNo = 0;
       totalDuration = TimeSpan.Zero;
       locations = new();
       albums = new();
@@ -79,12 +79,13 @@ namespace MusicPlayer {
         foreach (var playlistTrack in playlist.Tracks.GetStoredItems().OrderBy(plt => plt.TrackNo)) {
           tracks.Add(playlistTrack.Track);
           var isAdditionalTrack = additionalPlaylistTracks?.Contains(playlistTrack)??false;
-          var trackRow = new TrackRow(playlistTrack, isAdditionalTrack);
+          var trackRow = new TrackRow(ref trackNo, playlistTrack, updateSelectedCountTextBox, isAdditionalTrack);
           trackRows.Add(trackRow);
           if (isAdditionalTrack && firstAddedTrackRow is null) {
             firstAddedTrackRow = trackRow;
           }
         }
+        DurationTextBox.Text = playlist.TracksDurationHhMm;
         DC.GetTracksStats(ref totalDuration, locations, albums, artists, genres, years, tracks);
       }
 
@@ -93,10 +94,6 @@ namespace MusicPlayer {
 
       //filter
       FilterTextBox.TextChanged += filterTextBox_TextChanged;
-      GenreComboBox.SelectionChanged += filterComboBox_SelectionChanged;
-      GenreComboBox.ItemsSource = genres;
-      LocationsComboBox.SelectionChanged += filterComboBox_SelectionChanged;
-      LocationsComboBox.ItemsSource = locations;
       ArtistComboBox.SelectionChanged += filterComboBox_SelectionChanged;
       ArtistComboBox.ItemsSource = artists;
       AlbumComboBox.SelectionChanged += filterComboBox_SelectionChanged;
@@ -106,11 +103,17 @@ namespace MusicPlayer {
       GenreComboBox.ItemsSource = genres;
       YearComboBox.SelectionChanged += yearComboBox_SelectionChanged;
       YearComboBox.ItemsSource = years;
+      LocationsComboBox.SelectionChanged += filterComboBox_SelectionChanged;
+      LocationsComboBox.ItemsSource = locations;
       RemoveCheckBox.Click += checkBox_Click;
+      PlaylistCheckBox.Click += checkBox_Click;
       ClearButton.Click += clearButton_Click;
       RemoveAllButton.Click += removeAllButton_Click;
       PLAllButton.Click += plAllButton_Click;
       UnselectAllButton.Click += unselectAllButton_Click;
+      ExecuteRemoveButton.Click += executeRemoveButton_Click;
+      AddToOtherPlaylistComboBox.ItemsSource = DC.Data.PlaylistStrings;
+      AddToOtherPlaylistButton.Click += addToOtherPlaylistButton_Click;
 
       //datagrid
       tracksViewSource = ((System.Windows.Data.CollectionViewSource)this.FindResource("TracksViewSource"));
@@ -145,15 +148,8 @@ namespace MusicPlayer {
     #region TrackRow Data
     //      -------------
 
-    public class TrackRow: INotifyPropertyChanged {
-      public PlaylistTrack PlaylistTrack { get;}
-      public Track Track { get; }
-      public string LocationLower { get; }
-      public string AlbumLower { get; }
-      public string ArtistsLower { get; }
-      public string ComposersLower { get; }
-      public string PublisherLower { get; }
-      public string TitleLower { get; }
+    public class TrackRow: TrackGridRow {
+      public PlaylistTrack PlaylistTrack { get; }
       public bool IsAdditionalTrack { get; }
       public Brush RowBackground { get; }
       public int PlaylistTrackNo {
@@ -163,7 +159,7 @@ namespace MusicPlayer {
         set {
           if (playlistTrackNo!=value) {
             playlistTrackNo = value;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PlaylistTrackNo)));
+            RaisePropertyChanged(nameof(PlaylistTrackNo));
           }
         }
       }
@@ -171,123 +167,176 @@ namespace MusicPlayer {
       public int PlaylistTrackNoOld { get; }
 
 
-      /// <summary>
-      /// Track is marked for removal from playlist
-      /// </summary>
-      public bool IsRemoval {
-        get {
-          return isRemoval;
-        }
-        set {
-          if (isRemoval!=value) {
-            isRemoval = value;
-            //**--updatePlaylistCheckBox();
-            HasIsRemovalChanged?.Invoke();
-          }
-        }
-      }
-      bool isRemoval;
-
-
-      /// <summary>
-      /// User selected this track for adding to playlist OR CheckBox is disabled and displays that the track is already in the playlist
-      /// </summary>
-      public bool IsAddPlaylist {
-        get {
-          return isAddPlaylist;
-        }
-        set {
-          if (isAddPlaylist!=value) {
-            isAddPlaylist = value;
-            HasIsAddPlaylistChanged?.Invoke();
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsAddPlaylist)));
-          }
-        }
-      }
-      bool isAddPlaylist;
-
-
-      /// <summary>
-      /// Playlist CheckBox is visible if a playlist name is entered and track is not marked for deletion
-      /// </summary>
-      public Visibility PlaylistCheckBoxVisibility {
-        get {
-          return playlistCheckBoxVisibility;
-        }
-        set {
-          if (playlistCheckBoxVisibility!=value) {
-            playlistCheckBoxVisibility = value;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PlaylistCheckBoxVisibility)));
-          }
-        }
-      }
-      Visibility playlistCheckBoxVisibility;
-
-
-      /// <summary>
-      /// Playlist CheckBox is disabled when the track is already in the playlist
-      /// </summary>
-      public bool PlaylistCheckBoxIsEnabled {
-        get {
-          return playlistCheckBoxIsEnabled;
-        }
-        set {
-          if (playlistCheckBoxIsEnabled!=value) {
-            playlistCheckBoxIsEnabled = value;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PlaylistCheckBoxIsEnabled)));
-          }
-        }
-      }
-      bool playlistCheckBoxIsEnabled;
-      public event PropertyChangedEventHandler? PropertyChanged;
-
-
-#pragma warning disable CA2211 // Non-constant fields should not be visible
-      public static Action? HasIsRemovalChanged;
-      public static Action? HasIsAddPlaylistChanged;
-#pragma warning restore CA2211
-
       static readonly Brush highlightedBackgroundBrush = new SolidColorBrush(Color.FromRgb(0xDF, 0xF1, 0xFA));
 
 
-      public TrackRow(PlaylistTrack playlistTrack, bool isAdditionalTrack = false) {
+      public TrackRow(ref int trackNo, PlaylistTrack playlistTrack, Action? dataChanged, bool isAdditionalTrack) :
+        base(ref trackNo, playlistTrack.Track, dataChanged) {
         PlaylistTrack = playlistTrack;
-        Track = playlistTrack.Track;
-        LocationLower = Track.Location.Name.ToLowerInvariant();
-        ArtistsLower = Track.Artists?.ToLowerInvariant()??"";
-        AlbumLower = Track.Album?.ToLowerInvariant()??"";
-        ComposersLower = Track.Composers?.ToLowerInvariant()??"";
-        PublisherLower = Track.Publisher?.ToLowerInvariant()??"";
-        TitleLower = Track.Title?.ToLowerInvariant()??"";
         IsAdditionalTrack = isAdditionalTrack;
         RowBackground = isAdditionalTrack ? highlightedBackgroundBrush : Brushes.White;
         PlaylistTrackNoOld = PlaylistTrackNo = playlistTrack.TrackNo;
-        isRemoval = false;
-        isAddPlaylist = false;
       }
+
     }
-    #endregion
+      //    public class TrackRow: INotifyPropertyChanged {
+      //      public PlaylistTrack PlaylistTrack { get;}
+      //      public Track Track { get; }
+      //      public string LocationLower { get; }
+      //      public string AlbumLower { get; }
+      //      public string ArtistsLower { get; }
+      //      public string ComposersLower { get; }
+      //      public string PublisherLower { get; }
+      //      public string TitleLower { get; }
+      //      public bool IsAdditionalTrack { get; }
+      //      public Brush RowBackground { get; }
+      //      public int PlaylistTrackNo {
+      //        get {
+      //          return playlistTrackNo;
+      //        }
+      //        set {
+      //          if (playlistTrackNo!=value) {
+      //            playlistTrackNo = value;
+      //            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PlaylistTrackNo)));
+      //          }
+      //        }
+      //      }
+      //      int playlistTrackNo;
+      //      public int PlaylistTrackNoOld { get; }
 
 
-    #region Events
-    //      ------
+      //      /// <summary>
+      //      /// Track is marked for removal from playlist
+      //      /// </summary>
+      //      public bool IsRemoval {
+      //        get {
+      //          return isRemoval;
+      //        }
+      //        set {
+      //          if (isRemoval!=value) {
+      //            isRemoval = value;
+      //            //**--updatePlaylistCheckBox();
+      //            HasIsRemovalChanged?.Invoke();
+      //          }
+      //        }
+      //      }
+      //      bool isRemoval;
+
+
+      //      /// <summary>
+      //      /// User selected this track for adding to playlist OR CheckBox is disabled and displays that the track is already in the playlist
+      //      /// </summary>
+      //      public bool IsAddPlaylist {
+      //        get {
+      //          return isAddPlaylist;
+      //        }
+      //        set {
+      //          if (isAddPlaylist!=value) {
+      //            isAddPlaylist = value;
+      //            HasIsAddPlaylistChanged?.Invoke();
+      //            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsAddPlaylist)));
+      //          }
+      //        }
+      //      }
+      //      bool isAddPlaylist;
+
+
+      //      /// <summary>
+      //      /// Playlist CheckBox is visible if a playlist name is entered and track is not marked for deletion
+      //      /// </summary>
+      //      public Visibility PlaylistCheckBoxVisibility {
+      //        get {
+      //          return playlistCheckBoxVisibility;
+      //        }
+      //        set {
+      //          if (playlistCheckBoxVisibility!=value) {
+      //            playlistCheckBoxVisibility = value;
+      //            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PlaylistCheckBoxVisibility)));
+      //          }
+      //        }
+      //      }
+      //      Visibility playlistCheckBoxVisibility;
+
+
+      //      /// <summary>
+      //      /// Playlist CheckBox is disabled when the track is already in the playlist
+      //      /// </summary>
+      //      public bool PlaylistCheckBoxIsEnabled {
+      //        get {
+      //          return playlistCheckBoxIsEnabled;
+      //        }
+      //        set {
+      //          if (playlistCheckBoxIsEnabled!=value) {
+      //            playlistCheckBoxIsEnabled = value;
+      //            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PlaylistCheckBoxIsEnabled)));
+      //          }
+      //        }
+      //      }
+      //      bool playlistCheckBoxIsEnabled;
+      //      public event PropertyChangedEventHandler? PropertyChanged;
+
+
+      //#pragma warning disable CA2211 // Non-constant fields should not be visible
+      //      public static Action? HasIsRemovalChanged;
+      //      public static Action? HasIsAddPlaylistChanged;
+      //#pragma warning restore CA2211
+
+      //      static readonly Brush highlightedBackgroundBrush = new SolidColorBrush(Color.FromRgb(0xDF, 0xF1, 0xFA));
+
+
+      //      public TrackRow(PlaylistTrack playlistTrack, bool isAdditionalTrack = false) {
+      //        PlaylistTrack = playlistTrack;
+      //        Track = playlistTrack.Track;
+      //        LocationLower = Track.Location.Name.ToLowerInvariant();
+      //        ArtistsLower = Track.Artists?.ToLowerInvariant()??"";
+      //        AlbumLower = Track.Album?.ToLowerInvariant()??"";
+      //        ComposersLower = Track.Composers?.ToLowerInvariant()??"";
+      //        PublisherLower = Track.Publisher?.ToLowerInvariant()??"";
+      //        TitleLower = Track.Title?.ToLowerInvariant()??"";
+      //        IsAdditionalTrack = isAdditionalTrack;
+      //        RowBackground = isAdditionalTrack ? highlightedBackgroundBrush : Brushes.White;
+      //        PlaylistTrackNoOld = PlaylistTrackNo = playlistTrack.TrackNo;
+      //        isRemoval = false;
+      //        isAddPlaylist = false;
+      //      }
+      //    }
+      #endregion
+
+
+      #region Events
+      //      ------
 
     private void playlistWindow_Loaded(object sender, RoutedEventArgs e) {
       PlaylistNameTextBox.Focus();
       if (firstAddedTrackRow is not null) {
         TracksDataGrid.ScrollIntoView(firstAddedTrackRow);
       }
+
+      AddToOtherPlaylistComboBox.SelectionChanged += addToOtherPlaylistComboBox_SelectionChanged;
+      AddToOtherPlaylistComboBox.AddHandler(TextBoxBase.TextChangedEvent, new RoutedEventHandler(addToOtherPlaylistComboBox_TextChanged));
+      AddToOtherPlaylistComboBox.LostFocus += addToOtherPlaylistComboBox_LostFocus;
+      updatePlaylistCheckBoxes();
     }
 
 
+    #region Filter events
+    //      -------------
+
+    const int minFilterStringLength = 2;
     string filterText = "";
 
 
     private void filterTextBox_TextChanged(object sender, TextChangedEventArgs e) {
       if (isClearing) return;
 
-      filterText = FilterTextBox.Text.ToLowerInvariant();
-      tracksViewSource.View.Refresh();
+      var textLength = FilterTextBox.Text.Length;
+      if (textLength==0) {
+        filterText = "";
+        tracksViewSource.View.Refresh();
+      } else if (textLength>minFilterStringLength) {
+        filterText = FilterTextBox.Text.ToLowerInvariant();
+        tracksViewSource.View.Refresh();
+      }
     }
 
 
@@ -324,45 +373,14 @@ namespace MusicPlayer {
       isClearing = true;
       FilterTextBox.Text = "";
       filterText = "";
-      LocationsComboBox.SelectedIndex = 0;
       ArtistComboBox.SelectedIndex = 0;
       AlbumComboBox.SelectedIndex = 0;
       GenreComboBox.SelectedIndex = 0;
       YearComboBox.SelectedIndex = 0;
-
+      LocationsComboBox.SelectedIndex = 0;
       isClearing = false;
+
       tracksViewSource.View.SortDescriptions.Clear();
-      tracksViewSource.View.Refresh();
-    }
-
-
-    private void removeAllButton_Click(object sender, RoutedEventArgs e) {
-      foreach (var item in TracksDataGrid.Items) {
-        var trackRow = (TrackRow)item;
-        trackRow.IsRemoval = true;
-      }
-      tracksViewSource.View.Refresh();
-    }
-
-
-    private void plAllButton_Click(object sender, RoutedEventArgs e) {
-      foreach (var item in TracksDataGrid.Items) {
-        var trackRow = (TrackRow)item;
-        if (trackRow.PlaylistCheckBoxIsEnabled) {
-          trackRow.IsAddPlaylist = true;
-          if (trackRow.PlaylistCheckBoxIsEnabled) {
-            trackRow.IsAddPlaylist = false;
-          }
-        }
-      }
-    }
-
-
-    private void unselectAllButton_Click(object sender, RoutedEventArgs e) {
-      foreach (var item in TracksDataGrid.Items) {
-        var trackRow = (TrackRow)item;
-        trackRow.IsRemoval = false;
-      }
       tracksViewSource.View.Refresh();
     }
 
@@ -371,26 +389,16 @@ namespace MusicPlayer {
       var trackRow = (TrackRow)e.Item;
       var isAccepted = false;
       var isRefused = false;
-      if (filterText.Length>0) {
-        if (trackRow.LocationLower.Contains(filterText)) {
+      if (filterText.Length>2) {
+        if (trackRow.Track.TitleLowerCase?.Contains(filterText)??false) {
           isAccepted = true;
-        } else if (trackRow.ArtistsLower.Contains(filterText)) {
+        } else if (trackRow.Track.ArtistsLowerCase?.Contains(filterText)??false) {
           isAccepted = true;
-        } else if (trackRow.AlbumLower.Contains(filterText)) {
+        } else if (trackRow.Track.AlbumLowerCase?.Contains(filterText)??false) {
           isAccepted = true;
-        } else if (trackRow.ComposersLower.Contains(filterText)) {
+        } else if (trackRow.Track.ComposersLowerCase?.Contains(filterText)??false) {
           isAccepted = true;
-        } else if (trackRow.PublisherLower.Contains(filterText)) {
-          isAccepted = true;
-        } else if (trackRow.TitleLower.Contains(filterText)) {
-          isAccepted = true;
-        } else {
-          isRefused = true;
-        }
-      }
-
-      if (LocationsComboBox.SelectedIndex>0) {
-        if (trackRow.Track.Location.Name==(string)LocationsComboBox.SelectedItem) {
+        } else if (trackRow.Track.PublisherLowerCase?.Contains(filterText)??false) {
           isAccepted = true;
         } else {
           isRefused = true;
@@ -429,12 +437,20 @@ namespace MusicPlayer {
         }
       }
 
+      if (LocationsComboBox.SelectedIndex>0) {
+        if (trackRow.Track.Location.Name==(string)LocationsComboBox.SelectedItem) {
+          isAccepted = true;
+        } else {
+          isRefused = true;
+        }
+      }
+
       //if no filter is active (=!isRefused) OR any filter does accept the item, then accept, i.e. OR conidion.
       isAccepted = !isRefused || isAccepted;
 
       //only accept item which match IsRemoval
       if (RemoveCheckBox.IsChecked is not null) {
-        if (trackRow.IsRemoval!=RemoveCheckBox.IsChecked) {
+        if (trackRow.IsDeletion!=RemoveCheckBox.IsChecked) {
           isAccepted = false;
         }
       }
@@ -448,29 +464,179 @@ namespace MusicPlayer {
 
       e.Accepted = isAccepted;
     }
+    #endregion
 
 
-    //private void hasSelectedChanged() {
-    //  var selectedCount = 0;
-    //  foreach (var trackRow in trackRows) {
-    //    if (trackRow.IsSelected) {
-    //      selectedCount++;
-    //    }
-    //  }
-    //  DeletionCountTextBox.Text = selectedCount.ToString();
-    //}
+    #region Deletion and PlayList Checkboxes
+    //      --------------------------------
 
+    private void removeAllButton_Click(object sender, RoutedEventArgs e) {
+      foreach (var item in TracksDataGrid.Items) {
+        var trackRow = (TrackRow)item;
+        trackRow.IsDeletion = true;
+      }
+      tracksViewSource.View.Refresh();
+    }
+
+
+    private void plAllButton_Click(object sender, RoutedEventArgs e) {
+      foreach (var item in TracksDataGrid.Items) {
+        var trackRow = (TrackRow)item;
+        if (trackRow.PlaylistCheckBoxIsEnabled) {
+          trackRow.IsAddPlaylist = true;
+        }
+      }
+    }
+
+
+    private void unselectAllButton_Click(object sender, RoutedEventArgs e) {
+      foreach (var item in TracksDataGrid.Items) {
+        var trackRow = (TrackRow)item;
+        trackRow.IsDeletion = false;
+        if (trackRow.PlaylistCheckBoxIsEnabled) {
+          trackRow.IsAddPlaylist = false;
+        }
+      }
+      tracksViewSource.View.Refresh();
+    }
+
+
+    private void addToOtherPlaylistComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) {
+      if (e.AddedItems.Count>0) {
+        var addedItem = e.AddedItems[0];
+        if (addedItem is not null) {
+          updatePlaylist(addedItem.ToString());
+          return;
+        }
+      }
+      updatePlaylist(AddToOtherPlaylistComboBox.Text);
+    }
+
+
+    private void addToOtherPlaylistComboBox_LostFocus(object sender, RoutedEventArgs e) {
+      updatePlaylist(AddToOtherPlaylistComboBox.Text);
+    }
+
+
+    private void addToOtherPlaylistComboBox_TextChanged(object sender, RoutedEventArgs e) {
+      updatePlaylist(AddToOtherPlaylistComboBox.Text);
+    }
+
+
+    bool hasOtherPlaylistName;
+    Playlist? otherPlaylist;
+
+
+    private void updatePlaylist(string? playlistName) {
+      var hasPlaylistNameNew = !string.IsNullOrEmpty(playlistName);
+      AddToOtherPlaylistButton.IsEnabled = PLAllButton.IsEnabled = hasPlaylistNameNew;
+      Playlist? playlistNew;
+      if (!hasPlaylistNameNew) {
+        playlistNew = null;
+      } else {
+        DC.Data.PlaylistsByNameLower.TryGetValue(playlistName!.ToLowerInvariant(), out playlistNew);
+      }
+
+      if (hasOtherPlaylistName!=hasPlaylistNameNew || otherPlaylist!=playlistNew) {
+        hasOtherPlaylistName = hasPlaylistNameNew;
+        otherPlaylist = playlistNew;
+        updatePlaylistCheckBoxes();
+      }
+    }
+
+
+    private void updatePlaylistCheckBoxes() {
+      foreach (var item in TracksDataGrid.Items) {
+        var trackRow = (TrackRow)item;
+        trackRow.UpdatePlaylistCheckBox(otherPlaylist, hasOtherPlaylistName);
+      }
+      updateSelectedCountTextBox();
+    }
+
+
+    int removalCount;
+
+
+    //**--
+    private void updateSelectedCountTextBox() {
+      removalCount = 0;
+      var existPlaylistCount = 0;
+      var addPlaylistCount = 0;
+      foreach (var trackRow in trackRows) {
+        if (trackRow.IsDeletion) {
+          removalCount++;
+        } else {
+          if (hasOtherPlaylistName) {
+            if (trackRow.PlaylistCheckBoxIsEnabled) {
+              if (trackRow.IsAddPlaylist) {
+                addPlaylistCount++;
+              }
+            } else {
+              existPlaylistCount++;
+            }
+          }
+        }
+      }
+      SelectedCountTextBox.Text = $"Remove: {removalCount}, PL exist: {existPlaylistCount}, new: {addPlaylistCount}";
+      updateExecuteRemoveButton();
+    }
+
+
+    private void executeRemoveButton_Click(object sender, RoutedEventArgs e) {
+      var result = MessageBox.Show($"Do you want to remove {removalCount} track(s) from playlist {playlist!.Name}?", "Track Removal", MessageBoxButton.YesNo,
+        MessageBoxImage.Question, MessageBoxResult.No);
+      if (result==MessageBoxResult.Yes) {
+        var remainingTrackRows = new List<TrackRow>(trackRows.Count);
+        foreach (var trackRow in trackRows) {
+          if (trackRow.IsDeletion) {
+            foreach (var playlistsTrack in trackRow.Track.Playlists) {
+              if (playlistsTrack.Playlist==playlist) {
+                playlistsTrack.Release();
+              }
+            }
+          } else {
+            remainingTrackRows.Add(trackRow);
+          }
+        }
+        remainingTrackRows.Sort((tr1, tr2) => { return tr1.PlaylistTrack.TrackNo.CompareTo(tr2.PlaylistTrack.TrackNo); });
+        var trackNo = 0;
+        foreach (var trackRow in remainingTrackRows) {
+          var playlistTrack = trackRow.PlaylistTrack;
+          playlistTrack.Update(playlistTrack.Playlist, playlistTrack.Track, trackNo++);
+        }
+        tracksViewSource.Source = trackRows = remainingTrackRows;
+        DurationTextBox.Text = playlist.TracksDurationHhMm;
+        TracksCountTextBox.Text = tracks.Count.ToString();
+      }
+    }
+
+
+    private void addToOtherPlaylistButton_Click(object sender, RoutedEventArgs e) {
+      var playlistName = AddToOtherPlaylistComboBox.Text;
+      if (string.IsNullOrEmpty(playlistName)) {
+        MessageWindow.Show(this, "Provide name for playlist");
+        return;
+      }
+      if (!DC.Data.PlaylistsByNameLower.TryGetValue(playlistName.ToLower(), out var playlist)) {
+        playlist = new Playlist(playlistName);
+      }
+      var playlistTracks = new List<PlaylistTrack>();
+      var trackNo = playlist.Tracks.Count;
+      foreach (var item in TracksDataGrid.Items) {
+        var trackRow = (TrackRow)item;
+        if (trackRow.PlaylistCheckBoxIsEnabled &&  trackRow.IsAddPlaylist) {
+          playlistTracks.Add(new PlaylistTrack(playlist, trackRow.Track, trackNo++));
+        }
+      }
+      PlaylistWindow.Show(this, playlist, playlistTracks, refreshTrackDataGrid);
+    }
+    #endregion
+
+
+    #region DataGrid events
+    //      ---------------
 
     private void tracksDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e) {
-      //var selectedIndex = TracksDataGrid.SelectedIndex;
-      //if (selectedIndex<0) return;
-
-      //var dataGridCell = ((DependencyObject)e.OriginalSource).FindVisualParentOfType<DataGridCell>();
-      //if (dataGridCell is null) return;
-
-      //if (dataGridCell.Column.DisplayIndex==11) return;
-
-      //this.TrackPlayer.Play(((TrackRow)TracksDataGrid.Items[selectedIndex]).Track);
       var playinglist = getPlayinglist();
       if (playinglist is not null) {
         TrackPlayer.Play(playinglist);
@@ -492,39 +658,15 @@ namespace MusicPlayer {
     }
 
 
-    //private Track getCurrentTrack() {
-    //  return ((TrackRow)TracksDataGrid.SelectedItem).Track;
-    //}
-
-
-    //private Track getNextTrack() {
-    //  var trackIndex = TracksDataGrid.SelectedIndex + 1;
-    //  if (trackIndex>=TracksDataGrid.Items.Count) {
-    //    trackIndex = 0;
-    //  }
-    //  return ((TrackRow)TracksDataGrid.Items[trackIndex]).Track;
-    //}
-
-
-    private Playinglist? getPlayinglist() {
-      if (TracksDataGrid.SelectedItems.Count==0) {
-        System.Diagnostics.Debugger.Break();
-        return null;
-      } else if (TracksDataGrid.SelectedItems.Count==1) {
-        var tracks = new List<Track>();
-        for (int rowIndex = TracksDataGrid.SelectedIndex; rowIndex<TracksDataGrid.Items.Count; rowIndex++) {
-          tracks.Add(((TrackRow)TracksDataGrid.Items[rowIndex]).Track);
-        }
-        for (int rowIndex = 0; rowIndex<TracksDataGrid.SelectedIndex; rowIndex++) {
-          tracks.Add(((TrackRow)TracksDataGrid.Items[rowIndex]).Track);
-        }
-        return new Playinglist(tracks);
-      } else {
-        var trackQuery =
-          from object gridItem in TracksDataGrid.SelectedItems
-          select ((TrackRow)gridItem).Track;
-        return new Playinglist(trackQuery);
+    private void refreshTrackDataGrid(Playlist playlist) {
+      foreach (var item in TracksDataGrid.Items) {
+        var trackRow = (TrackRow)item;
+        trackRow.IsDeletion = false;
+        trackRow.IsAddPlaylist = false;
+        trackRow.UpdatePlaylists();
+        trackRow.UpdatePlaylistCheckBox(playlist, hasOtherPlaylistName);
       }
+      tracksViewSource.View.Refresh();
     }
 
 
@@ -675,6 +817,7 @@ namespace MusicPlayer {
     private (int firstSelectedTrack, int lastSelectedTrack, int selectedTracksCount) getSelectedFirstLast() {
       var minPLTrackNo = int.MaxValue;
       var maxPLTrackNo = int.MinValue;
+      //var x = DataGridRow.GetRowContainingElement(cell);
       foreach (var item in TracksDataGrid.SelectedItems) {
         var trackRow = (TrackRow)item;
         if (minPLTrackNo>trackRow.PlaylistTrackNo) {
@@ -685,7 +828,9 @@ namespace MusicPlayer {
         }
       }
       var count = maxPLTrackNo - minPLTrackNo + 1;
+      #pragma warning disable IDE0046 // Convert to conditional expression
       if (count != TracksDataGrid.SelectedItems.Count) throw new Exception("Selected tracks are not continuous, they cannot be moved.");
+      #pragma warning restore IDE0046
 
       return (minPLTrackNo, maxPLTrackNo, count);
     }
@@ -720,59 +865,18 @@ namespace MusicPlayer {
       };
       if (hasRankChanged!=newHasRankChanged) {
         hasRankChanged = newHasRankChanged;
+        RemoveAllButton.IsEnabled = !hasRankChanged;
+        updateExecuteRemoveButton();
         updateSaveButton();
       }
     }
 
 
-    bool hasPlaylistNameChanged;
-
-    private void playlistNameTextBox_TextChanged(object sender, TextChangedEventArgs e) {
-      var newHasPlaylistNameChanged = (playlist?.Name??"")!=PlaylistNameTextBox.Text;
-      if (hasPlaylistNameChanged!=newHasPlaylistNameChanged) {
-        hasPlaylistNameChanged = newHasPlaylistNameChanged;
-        updateSaveButton();
-      }
+    private void updateExecuteRemoveButton() {
+      ExecuteRemoveButton.IsEnabled = !hasRankChanged && removalCount>0;
     }
 
 
-    private void updateSaveButton() {
-      SaveButton.IsEnabled = hasRankChanged || hasPlaylistNameChanged;
-    }
-
-
-    private void PlaylistWindow_Closing(object sender, CancelEventArgs e) {
-      string message;
-      if (hasRankChanged) {
-        message =hasPlaylistNameChanged ? "Playlist name and ranking of tracks have changed." : "Ranking of tracks have changed.";
-      } else {
-        if (hasPlaylistNameChanged) {
-          message = "Playlist name has changed.";
-        } else {
-          return;
-        }
-      }
-
-      var answer = MessageBox.Show(message + Environment.NewLine + 
-        "Press Yes to save changes and close window." + Environment.NewLine +
-        "Press No to discard changes and close window." + Environment.NewLine +
-        "Press Cancel to keep window open.", 
-        "Closing window. Should changes be saved ?", 
-        MessageBoxButton.YesNoCancel, MessageBoxImage.Question, MessageBoxResult.Cancel);
-      switch (answer) {
-      case MessageBoxResult.None:
-      case MessageBoxResult.Cancel:
-        e.Cancel = true;
-        break;
-      case MessageBoxResult.Yes:
-        save();
-        break;
-      case MessageBoxResult.No:
-        break;
-      default:
-        throw new NotSupportedException();
-      }
-    }
     ////////https://social.technet.microsoft.com/wiki/contents/articles/21202.wpf-programmatically-selecting-and-focusing-a-row-or-cell-in-a-datagrid.aspx
     //////private void selectAndBringInView(int firstTrack, int tracksCount) {
     //////  TracksDataGrid.SelectedItems.Clear();
@@ -838,7 +942,7 @@ namespace MusicPlayer {
     bool isScrollUpNeeded;
 
 
-    private void TracksDataGrid_LayoutUpdated(object? sender, EventArgs e){
+    private void TracksDataGrid_LayoutUpdated(object? sender, EventArgs e) {
       if (isScrollUpNeeded) {
         isScrollUpNeeded = false;
         (int firstSelectedTrack, _, _) = getSelectedFirstLast();
@@ -851,6 +955,23 @@ namespace MusicPlayer {
         lastSelectedTrack = Math.Min(TracksDataGrid.Items.Count-1, lastSelectedTrack+3);
         TracksDataGrid.ScrollIntoView(TracksDataGrid.Items[lastSelectedTrack]);
       }
+    }
+    #endregion
+
+
+    bool hasPlaylistNameChanged;
+
+    private void playlistNameTextBox_TextChanged(object sender, TextChangedEventArgs e) {
+      var newHasPlaylistNameChanged = (playlist?.Name??"")!=PlaylistNameTextBox.Text;
+      if (hasPlaylistNameChanged!=newHasPlaylistNameChanged) {
+        hasPlaylistNameChanged = newHasPlaylistNameChanged;
+        updateSaveButton();
+      }
+    }
+
+
+    private void updateSaveButton() {
+      SaveButton.IsEnabled = hasRankChanged || hasPlaylistNameChanged;
     }
 
 
@@ -878,10 +999,70 @@ namespace MusicPlayer {
     }
 
 
+    private void PlaylistWindow_Closing(object sender, CancelEventArgs e) {
+      string message;
+      if (hasRankChanged) {
+        message =hasPlaylistNameChanged ? "Playlist name and sequence of tracks have changed." : "Sequence of tracks have changed.";
+      } else {
+        if (hasPlaylistNameChanged) {
+          message = "Playlist name has changed.";
+        } else {
+          return;
+        }
+      }
+
+      var answer = MessageBox.Show(message + Environment.NewLine + 
+        "Press Yes to save changes and close window." + Environment.NewLine +
+        "Press No to discard changes and close window." + Environment.NewLine +
+        "Press Cancel to keep window open.", 
+        "Closing window. Should changes be saved ?", 
+        MessageBoxButton.YesNoCancel, MessageBoxImage.Question, MessageBoxResult.Cancel);
+      switch (answer) {
+      case MessageBoxResult.None:
+      case MessageBoxResult.Cancel:
+        e.Cancel = true;
+        break;
+      case MessageBoxResult.Yes:
+        save();
+        break;
+      case MessageBoxResult.No:
+        break;
+      default:
+        throw new NotSupportedException();
+      }
+    }
+
+
     private void playlistWindow_Closed(object? sender, EventArgs e) {
       TrackPlayer.TrackChanged -= trackPlayer_TrackChanged;
       refreshOwner?.Invoke(playlist!);
       Owner?.Activate();
+    }
+    #endregion
+
+
+    #region Methods
+    //      -------
+
+    private Playinglist? getPlayinglist() {
+      if (TracksDataGrid.SelectedItems.Count==0) {
+        System.Diagnostics.Debugger.Break();
+        return null;
+      } else if (TracksDataGrid.SelectedItems.Count==1) {
+        var tracks = new List<Track>();
+        for (int rowIndex = TracksDataGrid.SelectedIndex; rowIndex<TracksDataGrid.Items.Count; rowIndex++) {
+          tracks.Add(((TrackRow)TracksDataGrid.Items[rowIndex]).Track);
+        }
+        for (int rowIndex = 0; rowIndex<TracksDataGrid.SelectedIndex; rowIndex++) {
+          tracks.Add(((TrackRow)TracksDataGrid.Items[rowIndex]).Track);
+        }
+        return new Playinglist(tracks);
+      } else {
+        var trackQuery =
+          from object gridItem in TracksDataGrid.SelectedItems
+          select ((TrackRow)gridItem).Track;
+        return new Playinglist(trackQuery);
+      }
     }
     #endregion
   }

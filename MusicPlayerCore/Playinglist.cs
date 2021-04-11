@@ -43,11 +43,17 @@ namespace MusicPlayer {
 
     private Playinglist(Playlist? playlist=null) {
       Playlist=playlist;
+      if (playlist is not null) {
+        DC.Data.Playinglists.Add(playlist, this);
+      }
       allTracks = new();
       toPlayTracks = new();
     }
 
 
+    /// <summary>
+    /// Creates Playinglist for some tracks
+    /// </summary>
     public Playinglist(IEnumerable<Track> tracks):this() {
       foreach (var track in tracks) {
         var playinglistItem = new PlayinglistItemTrack(track);
@@ -58,6 +64,9 @@ namespace MusicPlayer {
     }
 
 
+    /// <summary>
+    /// Creates Playinglist for playlist
+    /// </summary>
     public Playinglist(IEnumerable<PlaylistTrack> playlistTracks) : this(playlistTracks.First().Playlist) {
       fill(playlistTracks);
     }

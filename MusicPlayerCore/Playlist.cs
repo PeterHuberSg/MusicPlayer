@@ -13,7 +13,18 @@ namespace MusicPlayer  {
     //      ----------
 
     public int TracksCount { get; private set; }
+
+
     public TimeSpan TracksDuration { get; private set; }
+
+
+    public string TracksDurationHhMm => $"{(int)TracksDuration.TotalHours}:{TracksDuration.Minutes:00}"; 
+
+    //public string TracksDurationHhMm { 
+    //  get { 
+    //    return TracksDuration.ToString(); 
+    //  } 
+    //}
     #endregion
 
 

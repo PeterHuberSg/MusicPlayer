@@ -43,6 +43,7 @@ namespace MusicPlayer {
     #region Constructor
     //      -----------
 
+    readonly System.Windows.Data.CollectionViewSource playListsViewSource;
     readonly System.Windows.Data.CollectionViewSource playListViewSource;
 
 
@@ -60,8 +61,8 @@ namespace MusicPlayer {
       Loaded += mainWindow_Loaded;
       Closed += mainWindow_Closed;
 
-      //datagrid
-      playListViewSource = ((System.Windows.Data.CollectionViewSource)this.FindResource("PlayListViewSource"));
+      //playlists datagrid
+      playListsViewSource = ((System.Windows.Data.CollectionViewSource)this.FindResource("PlayListsViewSource"));
       //playListViewSource.Filter += tracksViewSource_Filter;
       PlayListsDataGrid.MouseDoubleClick += playListsDataGrid_MouseDoubleClick;
       var contextMenu = new ContextMenu();
@@ -70,18 +71,48 @@ namespace MusicPlayer {
       contextMenu.Items.Add(deletePlaylistMenuItem);
       PlayListsDataGrid.ContextMenu = contextMenu;
 
+      //playlist datagrid
+      playListViewSource = ((System.Windows.Data.CollectionViewSource)this.FindResource("PlayListViewSource"));
+
+      TrackPlayer.Init(getPlayinglist);
+      TrackPlayer.TrackChanged += TrackPlayer_TrackChanged;
 
       StatusBarBackgroundNormal = MainStatusBar.Background;
       StatusBarBackgroundTest = Brushes.LightCoral;
     }
 
-    private void deletePlaylistMenuItem_Click(object sender, RoutedEventArgs e) {
-      Playlist playlist = ((Playlist)PlayListsDataGrid.SelectedItem);
-      foreach (var playlistTrack in playlist.Tracks) {
-        playlistTrack.Release();
+
+    Playinglist? playinglist;
+
+
+    private Playinglist? getPlayinglist() {
+      Playlist playlist = (Playlist)PlayListsDataGrid.SelectedItem;
+      if (!DC.Data.Playinglists.TryGetValue(playlist, out playinglist)) {
+        playinglist = new Playinglist(playlist.Tracks);
       }
-      playlist.Release();
-      refreshPlaylistDataGrid();
+      return playinglist;
+    }
+
+
+    private void TrackPlayer_TrackChanged(Track? track) {
+      playListViewSource.Source =
+        playinglist!.ToPlayTracks.Cast<PlayinglistItemPlaylistTrack>().
+        OrderBy(plt => plt.PlaylistTrack.TrackNo).
+        Select(plt => plt.PlaylistTrack).ToList();
+    }
+
+
+    private void deletePlaylistMenuItem_Click(object sender, RoutedEventArgs e) {
+      Playlist playlist = (Playlist)PlayListsDataGrid.SelectedItem;
+      if (MessageBox.Show($"Delete {playlist.Name} ?", "Delete Playlist", MessageBoxButton.YesNo, MessageBoxImage.Question)
+        ==MessageBoxResult.Yes) 
+      {
+        foreach (var playlistTrack in playlist.Tracks) {
+          playlistTrack.Release();
+        }
+        playlist.Release();
+        refreshPlaylistDataGrid();
+      }
     }
     #endregion
 
@@ -148,7 +179,7 @@ namespace MusicPlayer {
 
     private void refreshPlaylistDataGrid() {
       updateStatistics();
-      playListViewSource.Source = DC.Data.Playlists.Values;
+      playListsViewSource.Source = DC.Data.Playlists.Values.OrderBy(pl => pl.Name).ToList();
     }
     #endregion
 
@@ -276,7 +307,9 @@ namespace MusicPlayer {
       var questionString = isProductionDb
           ? "Do you want to switch from Debug to Production database ?"
           : "Do you want to switch from Production to Debug database ?";
-      if (MessageBox.Show("Switch database ?", questionString, MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No)==MessageBoxResult.Yes) {
+      if (MessageBox.Show("Switch database ?", questionString, MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No)
+        ==MessageBoxResult.Yes) 
+      {
         //stocksViewSource.Source = null;
         dlInitAsync();
       } else {
@@ -293,11 +326,12 @@ namespace MusicPlayer {
     private async void dlInitAsync() {
       MainMenu.IsEnabled = false;
       IsProductionDC = RealComboBoxItem.IsSelected;
-      MainStatusBar.Background =IsProductionDC ? StatusBarBackgroundNormal : StatusBarBackgroundTest;
+      MainStatusBar.Background = IsProductionDC ? StatusBarBackgroundNormal : StatusBarBackgroundTest;
+      PathTextBox.Text = IsProductionDC ? DC.CsvFilePath + "; " + DC.BackupFilePath : DC.CsvTestFilePath;
 
       //Progress<string> progress = new Progress<string>(s => EventsTextBox.Text += Environment.NewLine + s);
       await Task.Run(() => dlInit(IsProductionDC, null));
-      playListViewSource.Source = DC.Data.Playlists.Values;
+      playListsViewSource.Source = DC.Data.Playlists.Values.OrderBy(pl => pl.Name).ToList();
       MainMenu.IsEnabled = true;
       updateStatistics();
     }

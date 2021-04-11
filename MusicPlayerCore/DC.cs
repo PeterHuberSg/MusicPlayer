@@ -225,7 +225,6 @@ namespace MusicPlayer {
         select playlistGroup;
       foreach (var playlistGroup in playinglistQuery) {
         var playinglist = new Playinglist(playlistGroup.OrderBy(pg=>pg.PlaylistTrack!.TrackNo));
-        Playinglists.Add(playinglist.Playlist!, playinglist);
       }
     }
 
