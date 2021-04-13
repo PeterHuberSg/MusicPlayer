@@ -562,6 +562,7 @@ namespace MusicPlayer {
           playlistTracks.Add(new PlaylistTrack(playlist, trackRow.Track, trackNo++));
         }
       }
+      MainWindow.Current!.RefreshPlaylistDataGrid(playlist);
       PlaylistWindow.Show(this, playlist, playlistTracks, refreshTrackDataGrid);
     }
     #endregion

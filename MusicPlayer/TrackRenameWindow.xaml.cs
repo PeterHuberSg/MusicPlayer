@@ -113,8 +113,8 @@ namespace MusicPlayer {
         YearTextBox.Text = track.Year.ToString();
         if (track.Year is not null) {
           YearTextBoxNew.Initialise(track.Year);
-        } else if (lastYear is not null) {
-          YearTextBoxNew.Initialise(lastYear);
+        //} else if (lastYear is not null) { //too confusing
+        //  YearTextBoxNew.Initialise(lastYear);
         } else {
           YearTextBoxNew.Initialise(null);
         }

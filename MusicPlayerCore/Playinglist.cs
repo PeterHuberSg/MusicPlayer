@@ -114,7 +114,7 @@ namespace MusicPlayer {
     }
 
 
-    public Track GetNext(Random? random) {
+    public Track? GetNext(Random? random) {
       Track? next = null;
       if (toPlayTracks.Count>0) {
         var trackIndex = random?.Next(toPlayTracks.Count) ?? 0;
@@ -123,9 +123,26 @@ namespace MusicPlayer {
         if (playinglistItem is PlayinglistItemTrack playinglistItemTrack) {
           next = playinglistItemTrack.Track;
         } else if (playinglistItem is PlayinglistItemPlaylistTrack playinglistItemPlaylistTrack) {
-          var playinglistTrack = DC.Data.PlayinglistTracksByPlaylistTrackKey[playinglistItemPlaylistTrack.PlaylistTrack.Key];
-          playinglistTrack.Release();
-          next = playinglistItemPlaylistTrack.PlaylistTrack.Track;
+          if (DC.Data.PlayinglistTracksByPlaylistTrackKey.TryGetValue(playinglistItemPlaylistTrack.PlaylistTrack.Key, out var playinglistTrack)) {
+            playinglistTrack.Release();
+            next = playinglistItemPlaylistTrack.PlaylistTrack.Track;
+          } else {
+            //PlayinglistTrack not found, Track might just have been removed from Playlist
+            //search for next existing playinglistItem
+            while (toPlayTracks.Count>0) {
+              if (trackIndex>=toPlayTracks.Count) {
+                trackIndex = 0;
+              }
+              playinglistItem = toPlayTracks[trackIndex];
+              toPlayTracks.RemoveAt(trackIndex);
+              if (DC.Data.PlayinglistTracksByPlaylistTrackKey.TryGetValue(playinglistItemPlaylistTrack.PlaylistTrack.Key, out playinglistTrack)) {
+                playinglistTrack.Release();
+                return playinglistItemPlaylistTrack.PlaylistTrack.Track;
+              }
+            }
+            System.Diagnostics.Debugger.Break();
+            return null;
+          }
         } else {
           throw new NotSupportedException();
         }

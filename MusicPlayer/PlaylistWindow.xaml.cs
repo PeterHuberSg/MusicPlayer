@@ -607,6 +607,7 @@ namespace MusicPlayer {
         tracksViewSource.Source = trackRows = remainingTrackRows;
         DurationTextBox.Text = playlist.TracksDurationHhMm;
         TracksCountTextBox.Text = tracks.Count.ToString();
+        MainWindow.Current!.RefreshPlaylistDataGrid(playlist);
       }
     }
 

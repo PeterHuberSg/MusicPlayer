@@ -96,8 +96,12 @@ namespace MusicPlayer  {
     /// <summary>
     /// Called after PlaylistTrack.Release() got executed
     /// </summary>
-    //partial void onReleased() {
-    //}
+    partial void onReleased() {
+      Playlist.RemoveFromTracks(this);
+      if (DC.Data.PlayinglistTracksByPlaylistTrackKey.TryGetValue(Key, out var playinglistTrack)){
+        playinglistTrack.Release();
+      }
+    }
 
 
     /// <summary>

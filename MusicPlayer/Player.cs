@@ -199,7 +199,8 @@ namespace MusicPlayer {
 
     private void playNextTrack() {
       Track = playinglist?.GetNext(IsShuffle ? random : null)??null;
-      if (Track==null) {
+      if (Track is null) {
+        trace($"playNextTrack() cannot find a track.");
         mediaPlayer.Pause();//prevents from immediate playing when user changes position
         State = PlayerStateEnum.Idle;
       } else {
@@ -252,9 +253,15 @@ namespace MusicPlayer {
       OwnerPlayerControl = playerControl;
       this.playinglist = playinglist;
       CanSkipTrack = true;
+      trace($"Play playlist {playinglist.Playlist?.Name}");
       Track = playinglist.GetNext(null);
-      trace($"Play {Track.Title}");
-      playtrack();
+      if (Track is null) {
+        trace($"cannot find a track.");
+        mediaPlayer.Pause();//prevents from immediate playing when user changes position
+        State = PlayerStateEnum.Idle;
+      } else {
+        playtrack();
+      }
     }
 
 
