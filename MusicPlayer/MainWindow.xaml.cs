@@ -17,7 +17,9 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using WpfWindowsLib;
 
+
 namespace MusicPlayer {
+
 
   /// <summary>
   /// Interaction logic for MainWindow.xaml
@@ -43,8 +45,8 @@ namespace MusicPlayer {
     #region Constructor
     //      -----------
 
-    readonly System.Windows.Data.CollectionViewSource playListsViewSource;
-    readonly System.Windows.Data.CollectionViewSource playListViewSource;
+    readonly System.Windows.Data.CollectionViewSource playlistsViewSource;
+    readonly System.Windows.Data.CollectionViewSource playlistViewSource;
 
 
     public MainWindow() {
@@ -62,19 +64,21 @@ namespace MusicPlayer {
       Closed += mainWindow_Closed;
 
       //playlists datagrid
-      playListsViewSource = ((System.Windows.Data.CollectionViewSource)this.FindResource("PlayListsViewSource"));
-      //playListViewSource.Filter += tracksViewSource_Filter;
-      PlayListsDataGrid.MouseDoubleClick += playListsDataGrid_MouseDoubleClick;
+      playlistsViewSource = ((System.Windows.Data.CollectionViewSource)this.FindResource("PlaylistsViewSource"));
+      //playlistViewSource.Filter += tracksViewSource_Filter;
+      PlaylistsDataGrid.SelectionChanged += PlaylistsDataGrid_SelectionChanged;
+      PlaylistsDataGrid.MouseDoubleClick += playlistsDataGrid_MouseDoubleClick;
       var contextMenu = new ContextMenu();
       var deletePlaylistMenuItem = new MenuItem { Header = "_Delete Playlist" };
       deletePlaylistMenuItem.Click += deletePlaylistMenuItem_Click;
       contextMenu.Items.Add(deletePlaylistMenuItem);
-      PlayListsDataGrid.ContextMenu = contextMenu;
+      PlaylistsDataGrid.ContextMenu = contextMenu;
 
-      //playlist datagrid
-      playListViewSource = ((System.Windows.Data.CollectionViewSource)this.FindResource("PlayListViewSource"));
+      //details of playing playlist datagrid
+      playlistViewSource = ((System.Windows.Data.CollectionViewSource)this.FindResource("PlaylistViewSource"));
+      updatePlaylistGridAndTitle();
 
-      TrackPlayer.Init(getPlayinglist);
+      TrackPlayer.Init(setPlayinglistForTrackPlayer);
       TrackPlayer.TrackChanged += TrackPlayer_TrackChanged;
 
       StatusBarBackgroundNormal = MainStatusBar.Background;
@@ -82,42 +86,112 @@ namespace MusicPlayer {
     }
 
 
-    Playinglist? playinglist;
+    Playlist? selectedPlaylist; //by user in playinglistsGrid selected row
+    Playinglist? trackPlayerPlayinglist; //playinglist given to Player when play button was pressed
 
 
-    private Playinglist? getPlayinglist() {
-      Playlist playlist = (Playlist)PlayListsDataGrid.SelectedItem;
-      if (!DC.Data.Playinglists.TryGetValue(playlist, out playinglist)) {
-        playinglist = new Playinglist(playlist.Tracks);
+    private Playinglist? setPlayinglistForTrackPlayer() {
+      Playlist playlist = (Playlist)PlaylistsDataGrid.SelectedItem;
+      trackPlayerPlayinglist = null; 
+      if (!DC.Data.Playinglists.TryGetValue(playlist, out trackPlayerPlayinglist)) {
+        trackPlayerPlayinglist = new Playinglist(playlist);
       }
-      return playinglist;
+      updatePlaylistGridAndTitle();
+      return trackPlayerPlayinglist;
+    }
+
+
+    private void updatePlaylistGridAndTitle() {
+      if (selectedPlaylist?.TracksCount>0) {
+        //display the tracks in the playlist selected by the user
+        PlaylistDataGrid.Visibility = Visibility.Visible;
+        var count = selectedPlaylist.TracksCount;
+        PlaylistContentTextBlock.Text = count==1 
+          ? $"1 track in playlist " + selectedPlaylist.Name
+          : $"{count} tracks in playlist " + selectedPlaylist.Name;
+
+      } else if (selectedPlaylist is null && trackPlayerPlayinglist?.ToPlayTracks.Count>0) {
+        //display the remaining tracks from the playing list the player is currently playing
+        PlaylistDataGrid.Visibility = Visibility.Visible;
+        var count = trackPlayerPlayinglist.ToPlayTracks.Count;
+        PlaylistContentTextBlock.Text = count==1
+          ? $"1 more track to play in playlist " + trackPlayerPlayinglist.Playlist!.Name
+          : $"{count} more tracks to play in playlist " + trackPlayerPlayinglist.Playlist!.Name;
+
+      } else {
+        //no tracks to be displayed in PlaylistDataGrid
+        PlaylistDataGrid.Visibility = Visibility.Hidden;
+        if (selectedPlaylist is not null) {
+          PlaylistContentTextBlock.Text = "There are no tracks in playlist " + selectedPlaylist.Name;
+        } else if (trackPlayerPlayinglist is not null) {
+          if (trackPlayerPlayinglist.Playlist!.PlaylistTracks.Count==0) {
+            PlaylistContentTextBlock.Text = "There are no tracks in playlist " + trackPlayerPlayinglist.Playlist!.Name;
+          } else {
+            System.Diagnostics.Debugger.Break();//Should never come here
+            PlaylistContentTextBlock.Text = "All tracks played in playlist " + trackPlayerPlayinglist.Playlist!.Name;
+          }
+        } else {
+          // selectedPlaylist and trackPlayerPlayinglist are null => display nothing in the title
+          PlaylistContentTextBlock.Text = "";
+        }
+      }
+    }
+
+
+    /// <summary>
+    /// Updates the PlaylistGrid is the playlist is the same as the one selected by the user or the one presently playing
+    /// </summary>
+    /// <param name="playlist"></param>
+    public void UpdatePlaylistDataGrid(Playlist playlist) {
+      if (selectedPlaylist==playlist || trackPlayerPlayinglist?.Playlist==playlist) {
+        updatePlaylistDataGrid();
+      }
+    }
+
+
+    private void updatePlaylistDataGrid() {
+      if (selectedPlaylist is not null) {
+        playlistViewSource.Source = selectedPlaylist.PlaylistTracks.OrderBy(plt => plt.TrackNo).ToList();
+
+      } else if (trackPlayerPlayinglist is not null) {
+        playlistViewSource.Source =
+          trackPlayerPlayinglist.ToPlayTracks.Cast<PlayinglistItemPlaylistTrack>().
+          OrderBy(plt => plt.PlaylistTrack.TrackNo).
+          Select(plt => plt.PlaylistTrack).ToList();
+
+      } else {
+        playlistViewSource.Source = null;
+      }
+      updatePlaylistGridAndTitle();
     }
 
 
     private void TrackPlayer_TrackChanged(Track? track) {
-      playListViewSource.Source =
-        playinglist!.ToPlayTracks.Cast<PlayinglistItemPlaylistTrack>().
-        OrderBy(plt => plt.PlaylistTrack.TrackNo).
-        Select(plt => plt.PlaylistTrack).ToList();
+      selectedPlaylist = null;
+      updatePlaylistDataGrid();
     }
 
 
     private void deletePlaylistMenuItem_Click(object sender, RoutedEventArgs e) {
-      Playlist playlist = (Playlist)PlayListsDataGrid.SelectedItem;
+      Playlist playlist = (Playlist)PlaylistsDataGrid.SelectedItem;
       if (MessageBox.Show($"Delete {playlist.Name} ?", "Delete Playlist", MessageBoxButton.YesNo, MessageBoxImage.Question)
         ==MessageBoxResult.Yes) 
       {
-        foreach (var playlistTrack in playlist.Tracks) {
-          playlistTrack.Release();
-        }
         playlist.Release();
-        refreshPlaylistDataGrid();
+        UpdatePlaylistsDataGrid();
+        if (trackPlayerPlayinglist?.Playlist==playlist) {
+          if (Player.Current!.Playinglist==trackPlayerPlayinglist) {
+            Player.Current.Release(TrackPlayer);
+          }
+          trackPlayerPlayinglist = null;
+          updatePlaylistDataGrid();
+        }
       }
     }
     #endregion
 
 
-    //public class PlayListTrack {
+    //public class PlaylistTrack {
     //  public Track Track { get; }
     //  public int No { get; }
     //  public string? Title { get; }
@@ -129,7 +203,7 @@ namespace MusicPlayer {
     //  public string? Publisher { get; }
     //  public string? Year { get; }
 
-    //  public PlayListTrack(int no, Track track){
+    //  public PlaylistTrack(int no, Track track){
     //    Track = track;
     //    No = no;
     //    Title = track.Title is null ? track.FileName : track.Title;
@@ -158,8 +232,17 @@ namespace MusicPlayer {
     }
 
 
-    private void playListsDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e) {
-      var selectedIndex = PlayListsDataGrid.SelectedIndex;
+    private void PlaylistsDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e) {
+      var playlist = PlaylistsDataGrid.SelectedItem as Playlist;
+      if (selectedPlaylist!=playlist) {
+        selectedPlaylist = playlist;
+        updatePlaylistDataGrid();
+      }
+    }
+
+
+    private void playlistsDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e) {
+      var selectedIndex = PlaylistsDataGrid.SelectedIndex;
       if (selectedIndex<0) return;
 
       var dataGridCell = ((DependencyObject)e.OriginalSource).FindVisualParentOfType<DataGridCell>();
@@ -168,18 +251,12 @@ namespace MusicPlayer {
       //if (dataGridCell.Column.DisplayIndex==10) return;
 
       //this.TrackPlayer.Play(((TrackRow)TracksDataGrid.Items[selectedIndex]).Track);
-      PlaylistWindow.Show(this, ((Playlist)PlayListsDataGrid.Items[selectedIndex]), null, RefreshPlaylistDataGrid);
+      PlaylistWindow.Show(this, ((Playlist)PlaylistsDataGrid.Items[selectedIndex]), null);
     }
 
 
-    public void RefreshPlaylistDataGrid(Playlist playlist) {
-      refreshPlaylistDataGrid();
-    }
-
-
-    private void refreshPlaylistDataGrid() {
-      updateStatistics();
-      playListsViewSource.Source = DC.Data.Playlists.Values.OrderBy(pl => pl.Name).ToList();
+    public void UpdatePlaylistsDataGrid() {
+      playlistsViewSource.Source = DC.Data.Playlists.Values.OrderBy(pl => pl.Name).ToList();
     }
     #endregion
 
@@ -192,7 +269,7 @@ namespace MusicPlayer {
 
     private void addMenus() {
       _ = addSubMenu(MainMenu, "_Tracks", () => TracksWindow.Show(this), isEnabled: true, isOneTime: false);
-      _ = addSubMenu(MainMenu, "_Import", () => ImportWindow.Show(this, refreshPlaylistDataGrid), isEnabled: true, isOneTime: true);
+      _ = addSubMenu(MainMenu, "_Import", () => ImportWindow.Show(this), isEnabled: true, isOneTime: true);
 
       windowsMenu = addSubMenu(MainMenu, "_Windows");
     }
@@ -331,14 +408,14 @@ namespace MusicPlayer {
 
       //Progress<string> progress = new Progress<string>(s => EventsTextBox.Text += Environment.NewLine + s);
       await Task.Run(() => dlInit(IsProductionDC, null));
-      playListsViewSource.Source = DC.Data.Playlists.Values.OrderBy(pl => pl.Name).ToList();
+      playlistsViewSource.Source = DC.Data.Playlists.Values.OrderBy(pl => pl.Name).ToList();
       MainMenu.IsEnabled = true;
-      updateStatistics();
+      UpdateTracksStatistics();
     }
 
 
 
-    private void updateStatistics() {
+    public void UpdateTracksStatistics() {
       StatusTextBox.Text = $"{DC.Data.Tracks.Count} tracks; {(int)DC.Data.TotalDuration.TotalHours} hours";
     }
 

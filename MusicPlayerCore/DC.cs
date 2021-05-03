@@ -237,7 +237,7 @@ namespace MusicPlayer {
         //release existing PlayinglistTracks
         playinglist.Refill(playlist);
       } else {
-        playinglist = new Playinglist(playlist.Tracks.OrderBy(pt => pt.TrackNo));
+        playinglist = new Playinglist(playlist);
       }
       return playinglist;
     }

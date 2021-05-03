@@ -26,7 +26,7 @@ namespace MusicPlayer {
 
     #pragma warning disable CA2211 // Non-constant fields should not be visible
     public static Player? Current { get; private set;}
-#pragma warning restore CA2211
+    #pragma warning restore CA2211
 
 
     public bool CanSkipTrack {
@@ -49,9 +49,11 @@ namespace MusicPlayer {
         if (_track!=value) {
           _track = value;
           trace($"Track: {value}");
-          OwnerPlayerControl?.SetSelectedTrack(Track);
           TrackChanged?.Invoke(this);
         }
+        ownerPlayerControl?.SetSelectedTrack(Track);//MainWindow needs to know even if the same track gets played again
+                                                    //so it can refresh the tracks displayed from the playlist. Most likely
+                                                    //so many tracks got deleted and only 1 is left.
       }
     }
     Track? _track;
@@ -97,7 +99,24 @@ namespace MusicPlayer {
     public event Action<Player>? VolumeChanged;
 
 
-    public PlayerControl? OwnerPlayerControl { get; private set; }
+    public PlayerControl? OwnerPlayerControl {
+      get {
+        return ownerPlayerControl;
+      }
+      private set {
+        if (ownerPlayerControl!=value) {
+          ownerPlayerControl = value;
+          OwnerChanged?.Invoke(value);
+        }
+      }
+    }
+    PlayerControl? ownerPlayerControl;
+    public event Action<PlayerControl?> OwnerChanged;
+
+
+
+    public Playinglist? Playinglist { get; private set; }
+
 
 
     public PlayerStateEnum State {
@@ -198,7 +217,7 @@ namespace MusicPlayer {
 
 
     private void playNextTrack() {
-      Track = playinglist?.GetNext(IsShuffle ? random : null)??null;
+      Track = Playinglist?.GetNext(IsShuffle ? random : null)??null;
       if (Track is null) {
         trace($"playNextTrack() cannot find a track.");
         mediaPlayer.Pause();//prevents from immediate playing when user changes position
@@ -236,12 +255,9 @@ namespace MusicPlayer {
     #region Play/Pause Methods
     //      ------------------
 
-    Playinglist? playinglist;
-
-
     public void Play(PlayerControl playerControl, Track track) {
       OwnerPlayerControl = playerControl;
-      playinglist = null;
+      Playinglist = null;
       CanSkipTrack = false;
       Track = track;
       trace($"Play single track {Track.Title}");
@@ -251,7 +267,7 @@ namespace MusicPlayer {
 
     public void Play(PlayerControl playerControl, Playinglist playinglist) {
       OwnerPlayerControl = playerControl;
-      this.playinglist = playinglist;
+      this.Playinglist = playinglist;
       CanSkipTrack = true;
       trace($"Play playlist {playinglist.Playlist?.Name}");
       Track = playinglist.GetNext(null);
@@ -316,14 +332,14 @@ namespace MusicPlayer {
 
 
     /// <summary>
-    /// If playerControl is the current owner of the player, it gets removed as owner, any paying track gets stopped
+    /// If playerControl is the current owner of the player, it gets removed as owner, any playing track gets stopped
     /// and player becomes idle.
     /// </summary>
     public void Release(PlayerControl playerControl) {
-      if (OwnerPlayerControl!=playerControl) return;
+      if (ownerPlayerControl!=playerControl) return;
 
       OwnerPlayerControl = null;
-      playinglist = null;
+      Playinglist = null;
       CanSkipTrack = false;
       trace("mediaPlayer.Release(playerControl)");
       mediaPlayer.Close();

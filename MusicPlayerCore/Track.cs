@@ -58,7 +58,7 @@ namespace MusicPlayer  {
       SkipStart = null;
       SkipEnd = null;
       TitleArtists = Title?.ToLowerInvariant().Trim() + "|" + Artists?.ToLowerInvariant().Trim();
-      playlists = new StorageList< PlaylistTrack>();
+      playlistTracks = new StorageList<PlaylistTrack>();
       Location.AddToTracks(this);
 
       onConstruct();
@@ -94,8 +94,6 @@ namespace MusicPlayer  {
     partial void onCsvConstruct() {
       updateArtists();
     }
-
-
     #endregion
 
 
@@ -160,10 +158,35 @@ namespace MusicPlayer  {
     }
 
 
+    ///// <summary>
+    ///// Called after playlistTrack is removed from Playlists
+    ///// </summary>
+    //partial void onRemovedFromPlaylists(PlaylistTrack playlistTrack) {
+    //}
+
+
+    /// <summary>
+    /// Called before Track.Release() gets executed
+    /// </summary>
+    partial void onReleasing() {
+      while (PlaylistTracks.Count>0) {
+        PlaylistTracks[^1].Release(); //this will release playlistsTrack here and also from Playinglist, should it be used there
+      }
+    }
+
+
     /// <summary>
     /// Called after Track.Release() got executed
     /// </summary>
     //partial void onReleased() {
+    //}
+
+
+    //public void ReleaseFully() {
+    //  while (Playlists.Count>0) {
+    //    Playlists[^1].Release(); //this will release playlistsTrack here and also from Playinglist, should it be used there
+    //  }
+    //  Release();
     //}
 
 

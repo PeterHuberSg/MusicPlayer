@@ -22,6 +22,20 @@ namespace MusicPlayer {
     #region Properties
     //      ----------
 
+    public bool IsPlayerOwner {
+      get {
+        return isPlayerOwner;
+      }
+      set {
+        if (isPlayerOwner!=value) {
+          isPlayerOwner = value;
+          BackgroundPath.Fill = value ? darkBackgroundBrush : lightBackgroundBrush;
+        }
+      }
+    }
+    bool isPlayerOwner;
+
+
     /// <summary>
     /// Is only raised if this PlayerControl is presently the Player.Owner.
     /// </summary>
@@ -51,12 +65,13 @@ namespace MusicPlayer {
           //not already set in MainWindow or other Windoe
           _ = new Player();
         }
-        Player.Current!.CanSkipTrackChanged += Current_CanSkipTrackChanged;
+        Player.Current!.OwnerChanged += player_OwnerChanged;
+        Player.Current!.CanSkipTrackChanged += player_CanSkipTrackChanged;
         Player.Current.StateChanged += player_StateChanged;
-        Player.Current.ErrorMessageChanged += Current_ErrorMessageChanged;
+        Player.Current.ErrorMessageChanged += player_ErrorMessageChanged;
         Player.Current.PositionChanged += player_PositionChanged;
         Player.Current.VolumeChanged += player_VolumeChanged;
-        Current_CanSkipTrackChanged(Player.Current);
+        player_CanSkipTrackChanged(Player.Current);
       }
     }
     #endregion
@@ -64,6 +79,10 @@ namespace MusicPlayer {
 
     #region EventHandlers
     //      -------------
+
+    #region GUI events
+    //      ----------
+
     RepeatButton scrollRepeatButtonLeft;
     RepeatButton scrollRepeatButtonRight;
 
@@ -197,6 +216,15 @@ namespace MusicPlayer {
         Player.Current?.SetVolume(VolumeSlider.Value);
       }
     }
+    #endregion
+
+
+    #region Player events
+    //      -------------
+
+    private void player_OwnerChanged(PlayerControl? playerControl) {
+      IsPlayerOwner = playerControl==this;
+    }
 
 
     private void player_StateChanged(Player player) {
@@ -221,7 +249,7 @@ namespace MusicPlayer {
     }
 
 
-    private void Current_ErrorMessageChanged(Player player) {
+    private void player_ErrorMessageChanged(Player player) {
       if (player.ErrorMessage.Length==0) {
         InfoTextBox.ToolTip = null;
       } else {
@@ -307,7 +335,7 @@ namespace MusicPlayer {
     }
 
 
-    private void Current_CanSkipTrackChanged(Player player) {
+    private void player_CanSkipTrackChanged(Player player) {
       NextButton.IsEnabled = player.CanSkipTrack;
       NextButton.InvalidateVisual();
     }
@@ -320,8 +348,9 @@ namespace MusicPlayer {
       Player.Current!.StateChanged -= player_StateChanged;
       Player.Current.PositionChanged -= player_PositionChanged;
       Player.Current.VolumeChanged -= player_VolumeChanged;
-      Player.Current.CanSkipTrackChanged -= Current_CanSkipTrackChanged;
+      Player.Current.CanSkipTrackChanged -= player_CanSkipTrackChanged;
     }
+    #endregion
     #endregion
 
 
@@ -373,6 +402,10 @@ namespace MusicPlayer {
     public void StopTrackIfPlaying(Track track) {
       Player.Current?.StopTrackIfPlaying(track);
     }
+
+
+    static Brush lightBackgroundBrush = Brushes.Orange;
+    static Brush darkBackgroundBrush = Brushes.Red;
     #endregion
   }
 }

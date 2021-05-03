@@ -99,8 +99,8 @@ namespace MusicPlayer  {
     public string TitleArtists { get; private set; }
 
 
-    public IStorageReadOnlyList<PlaylistTrack> Playlists => playlists;
-    readonly StorageList<PlaylistTrack> playlists;
+    public IStorageReadOnlyList<PlaylistTrack> PlaylistTracks => playlistTracks;
+    readonly StorageList<PlaylistTrack> playlistTracks;
 
 
     /// <summary>
@@ -198,7 +198,7 @@ namespace MusicPlayer  {
       SkipStart = skipStart;
       SkipEnd = skipEnd;
       TitleArtists = titleArtists;
-      playlists = new StorageList<PlaylistTrack>();
+      playlistTracks = new StorageList<PlaylistTrack>();
       Location.AddToTracks(this);
       onConstruct();
       if (DC.Data.IsTransaction) {
@@ -275,7 +275,7 @@ namespace MusicPlayer  {
       SkipEnd = csvReader.ReadIntNull();
       TitleArtists = csvReader.ReadString();
       DC.Data._TracksByTitleArtists.Add(TitleArtists, this);
-      playlists = new StorageList<PlaylistTrack>();
+      playlistTracks = new StorageList<PlaylistTrack>();
       if (Location!=Location.NoLocation) {
         Location.AddToTracks(this);
       }
@@ -549,32 +549,32 @@ namespace MusicPlayer  {
 
 
     /// <summary>
-    /// Add playlistTrack to Playlists.
+    /// Add playlistTrack to PlaylistTracks.
     /// </summary>
-    internal void AddToPlaylists(PlaylistTrack playlistTrack) {
+    internal void AddToPlaylistTracks(PlaylistTrack playlistTrack) {
 #if DEBUG
       if (playlistTrack==PlaylistTrack.NoPlaylistTrack) throw new Exception();
       if ((playlistTrack.Key>=0)&&(Key<0)) throw new Exception();
-      if (playlists.Contains(playlistTrack)) throw new Exception();
+      if (playlistTracks.Contains(playlistTrack)) throw new Exception();
 #endif
-      playlists.Add(playlistTrack);
-      onAddedToPlaylists(playlistTrack);
+      playlistTracks.Add(playlistTrack);
+      onAddedToPlaylistTracks(playlistTrack);
     }
-    partial void onAddedToPlaylists(PlaylistTrack playlistTrack);
+    partial void onAddedToPlaylistTracks(PlaylistTrack playlistTrack);
 
 
     /// <summary>
     /// Removes playlistTrack from Track.
     /// </summary>
-    internal void RemoveFromPlaylists(PlaylistTrack playlistTrack) {
+    internal void RemoveFromPlaylistTracks(PlaylistTrack playlistTrack) {
 #if DEBUG
-      if (!playlists.Remove(playlistTrack)) throw new Exception();
+      if (!playlistTracks.Remove(playlistTrack)) throw new Exception();
 #else
-        playlists.Remove(playlistTrack);
+        playlistTracks.Remove(playlistTrack);
 #endif
-      onRemovedFromPlaylists(playlistTrack);
+      onRemovedFromPlaylistTracks(playlistTrack);
     }
-    partial void onRemovedFromPlaylists(PlaylistTrack playlistTrack);
+    partial void onRemovedFromPlaylistTracks(PlaylistTrack playlistTrack);
 
 
     /// <summary>
@@ -584,16 +584,18 @@ namespace MusicPlayer  {
       if (Key<0) {
         throw new Exception($"Track.Release(): Track '{this}' is not stored in DC.Data, key is {Key}.");
       }
-      foreach (var playlistTrack in Playlists) {
+      onReleasing();
+      foreach (var playlistTrack in PlaylistTracks) {
         if (playlistTrack?.Key>=0) {
           throw new Exception($"Cannot release Track '{this}' " + Environment.NewLine + 
-            $"because '{playlistTrack}' in Track.Playlists is still stored.");
+            $"because '{playlistTrack}' in Track.PlaylistTracks is still stored.");
         }
       }
       DC.Data._TracksByTitleArtists.Remove(TitleArtists);
       DC.Data._Tracks.Remove(Key);
       onReleased();
     }
+    partial void onReleasing();
     partial void onReleased();
 
 
@@ -787,8 +789,8 @@ namespace MusicPlayer  {
         $" SkipStart: {SkipStart}," +
         $" SkipEnd: {SkipEnd}," +
         $" TitleArtists: {TitleArtists}," +
-        $" Playlists: {Playlists.Count}," +
-        $" PlaylistsStored: {Playlists.CountStoredItems};";
+        $" PlaylistTracks: {PlaylistTracks.Count}," +
+        $" PlaylistTracksStored: {PlaylistTracks.CountStoredItems};";
       onToString(ref returnString);
       return returnString;
     }

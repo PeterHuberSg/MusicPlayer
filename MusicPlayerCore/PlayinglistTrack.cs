@@ -44,7 +44,7 @@ namespace MusicPlayer  {
       var playlistTrack = DC.Data.PlaylistTracks.GetItem(PlaylistTrackKey);
       if (playlistTrack is null) {
         System.Diagnostics.Debugger.Break();
-        this.Release();
+        Release();
         //todo: add some error tracing
       } else {
         PlaylistTrack = playlistTrack;

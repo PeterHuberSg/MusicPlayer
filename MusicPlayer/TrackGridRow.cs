@@ -130,7 +130,7 @@ namespace MusicPlayer {
     public void UpdatePlaylists() {
       Playlists = null;
       var isFirst = true;
-      foreach (var playlistTrack in Track.Playlists) {
+      foreach (var playlistTrack in Track.PlaylistTracks) {
         if (isFirst) {
           isFirst = false;
         } else {
@@ -147,7 +147,7 @@ namespace MusicPlayer {
     public void UpdatePlaylistCheckBox(Playlist? playlist, bool hasPlaylistName) {
       this.hasPlaylistName = hasPlaylistName;
       if (hasPlaylistName) {
-        PlaylistCheckBoxIsEnabled = !Track.Playlists.Where(plt => plt.Playlist==playlist).Any();
+        PlaylistCheckBoxIsEnabled = !Track.PlaylistTracks.Where(plt => plt.Playlist==playlist).Any();
       }
       updatePlaylistCheckBox();
     }

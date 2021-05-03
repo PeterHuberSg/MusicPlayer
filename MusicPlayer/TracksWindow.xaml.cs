@@ -15,6 +15,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using WpfWindowsLib;
 
+
 namespace MusicPlayer {
 
 
@@ -530,10 +531,16 @@ namespace MusicPlayer {
         MessageBoxImage.Question, MessageBoxResult.No);
       if (result==MessageBoxResult.Yes) {
         var remainingTrackRows = new List<TrackRow>(trackRows.Count);
+        var changedPlaylists = new HashSet<Playlist>();
+        var isTrackPlaying = false;
         foreach (var trackRow in trackRows) {
           if (trackRow.IsDeletion) {
-            foreach (var playlistsTrack in trackRow.Track.Playlists) {
-              playlistsTrack.Release();
+            if (trackRow.Track==Player.Current!.Track) {
+              //this will not work properly if the player changes the track while foreach execute, but that is not a real problem
+              isTrackPlaying = true;
+            }
+            foreach (var playlistTrack in trackRow.Track.PlaylistTracks) {
+              changedPlaylists.Add(playlistTrack.Playlist);
             }
             trackRow.Track.Release();
           } else {
@@ -541,6 +548,15 @@ namespace MusicPlayer {
           }
         }
         tracksViewSource.Source = trackRows = remainingTrackRows;
+        DC.Data.UpdateTracksStats();
+        MainWindow.Current!.UpdatePlaylistsDataGrid();
+        MainWindow.Current.UpdateTracksStatistics();
+        foreach (var playlist in changedPlaylists) {
+          MainWindow.Current.UpdatePlaylistDataGrid(playlist);
+        }
+        if (isTrackPlaying) {
+          Player.Current!.PlayNextTrack();
+        }
       }
     }
 
@@ -555,15 +571,16 @@ namespace MusicPlayer {
         playlist = new Playlist(playlistName);
       }
       var playlistTracks = new List<PlaylistTrack>();
-      var trackNo = playlist.Tracks.Count;
+      var trackNo = playlist.PlaylistTracks.Count;
       foreach (var item in TracksDataGrid.Items) {
         var trackRow = (TrackRow)item;
         if (trackRow.PlaylistCheckBoxIsEnabled &&  trackRow.IsAddPlaylist) {
           playlistTracks.Add(new PlaylistTrack(playlist, trackRow.Track, trackNo++));
         }
       }
-      MainWindow.Current!.RefreshPlaylistDataGrid(playlist);
-      PlaylistWindow.Show(this, playlist, playlistTracks, refreshTrackDataGrid);
+      MainWindow.Current!.UpdatePlaylistsDataGrid();
+      MainWindow.Current.UpdatePlaylistDataGrid(playlist);
+      PlaylistWindow.Show(this, playlist, playlistTracks);
     }
     #endregion
 

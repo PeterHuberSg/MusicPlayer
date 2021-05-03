@@ -37,7 +37,7 @@ namespace MusicPlayer {
     [StorageProperty(needsDictionary: true)]
     public string TitleArtists;
 
-    public List<PlaylistTrack> Playlists;
+    public List<PlaylistTrack> PlaylistTracks;
   }
 
   [StorageClass]
@@ -59,7 +59,7 @@ namespace MusicPlayer {
     [StorageProperty(toLower: "Name", needsDictionary: true)]
     public string NameLower;
 
-    public List<PlaylistTrack> Tracks;
+    public List<PlaylistTrack> PlaylistTracks;
   }
 
 

@@ -213,10 +213,12 @@ namespace MusicPlayer  {
       if (Key<0) {
         throw new Exception($"PlayinglistTrack.Release(): PlayinglistTrack '{this}' is not stored in DC.Data, key is {Key}.");
       }
+      onReleasing();
       DC.Data._PlayinglistTracksByPlaylistTrackKey.Remove(PlaylistTrackKey);
       DC.Data._PlayinglistTracks.Remove(Key);
       onReleased();
     }
+    partial void onReleasing();
     partial void onReleased();
 
 

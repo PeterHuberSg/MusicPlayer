@@ -10,8 +10,8 @@ namespace MusicPlayerAdmin {
       Console.WriteLine("Music Player Adming");
       Console.WriteLine("===================");
 
-      var oldGenre = "Folk/Rock";
-      var newGenre = "Pop";
+      var oldGenre = "Hard Rock";
+      var newGenre = "Rock";
       var csvConfig = new CsvConfig(DC.CsvFilePath, DC.BackupFilePath, backupPeriodicity: 1, backupCopies: 8);
       using (var dc = new DC(csvConfig)) {
         var tracksQuery = 

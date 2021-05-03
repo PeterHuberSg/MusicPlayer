@@ -18,7 +18,7 @@ namespace MusicPlayer  {
     public TimeSpan TracksDuration { get; private set; }
 
 
-    public string TracksDurationHhMm => $"{(int)TracksDuration.TotalHours}:{TracksDuration.Minutes:00}"; 
+    public string TracksDurationHhMm => $"{(int)TracksDuration.TotalHours}:{TracksDuration.Minutes:00}";
 
     //public string TracksDurationHhMm { 
     //  get { 
@@ -40,11 +40,11 @@ namespace MusicPlayer  {
     /// <summary>
     /// Called once the constructor has filled all the properties
     /// </summary>
-    partial void onConstruct() {
-      if (Name!="NoName") {
-        DC.Data.UpdatePlayListStrings();
-      }
-    }
+    //partial void onConstruct() {
+    //  if (Name!="NoName") {
+    //    DC.Data.UpdatePlayListStrings();
+    //  }
+    //}
 
 
     /// <summary>
@@ -59,8 +59,6 @@ namespace MusicPlayer  {
     /// </summary>
     //partial void onCsvConstruct() {
     //}
-
-
     #endregion
 
 
@@ -77,8 +75,9 @@ namespace MusicPlayer  {
     /// <summary>
     /// Called after Playlist.Store() is executed
     /// </summary>
-    //partial void onStored() {
-    //}
+    partial void onStored() {
+      DC.Data.UpdatePlayListStrings();
+    }
 
 
     /// <summary>
@@ -108,6 +107,17 @@ namespace MusicPlayer  {
     /// </summary>
     //partial void onCsvUpdate() {
     //}
+
+
+    /// <summary>
+    /// Called before Playlist.Release() gets executed
+    /// </summary>
+    partial void onReleasing() {
+      while (PlaylistTracks.Count>0) {
+        PlaylistTracks[^1].Release(); //this will release playlistsTrack also from Playinglist, should it be used there
+      }
+      DC.Data.Playinglists.Remove(this);
+    }
 
 
     /// <summary>
@@ -149,10 +159,22 @@ namespace MusicPlayer  {
     }
 
 
+    //public void ReleaseFully() {
+    //  //foreach (var playlistTrack in Tracks) {
+    //  //  playlistTrack.Release();
+    //  //}
+    //  while (Tracks.Count>0) {
+    //    Tracks[Tracks.Count-1].Release(); //this will release playlistsTrack also from Playinglist, should it be used there
+    //  }
+    //  DC.Data.Playinglists.Remove(this);
+    //  Release();
+    //}
+
+
     /// <summary>
     /// Called after a playlistTrack gets added to Tracks.
     /// </summary>
-    partial void onAddedToTracks(PlaylistTrack playlistTrack) {
+    partial void onAddedToPlaylistTracks(PlaylistTrack playlistTrack) {
       TracksCount++;
       TracksDuration += playlistTrack.Track.Duration??TimeSpan.Zero;
     }
@@ -161,7 +183,7 @@ namespace MusicPlayer  {
     /// <summary>
     /// Called after a playlistTrack gets removed from Tracks.
     /// </summary>
-    partial void onRemovedFromTracks(PlaylistTrack playlistTrack) {
+    partial void onRemovedFromPlaylistTracks(PlaylistTrack playlistTrack) {
       TracksCount--;
       TracksDuration -= playlistTrack.Track.Duration??TimeSpan.Zero;
     }

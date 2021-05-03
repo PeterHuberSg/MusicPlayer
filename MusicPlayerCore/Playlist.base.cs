@@ -36,8 +36,8 @@ namespace MusicPlayer  {
     public string NameLower { get; private set; }
 
 
-    public IStorageReadOnlyList<PlaylistTrack> Tracks => tracks;
-    readonly StorageList<PlaylistTrack> tracks;
+    public IStorageReadOnlyList<PlaylistTrack> PlaylistTracks => playlistTracks;
+    readonly StorageList<PlaylistTrack> playlistTracks;
 
 
     /// <summary>
@@ -77,7 +77,7 @@ namespace MusicPlayer  {
       Key = StorageExtensions.NoKey;
       Name = name;
       NameLower = Name.ToLowerInvariant();
-      tracks = new StorageList<PlaylistTrack>();
+      playlistTracks = new StorageList<PlaylistTrack>();
       onConstruct();
       if (DC.Data.IsTransaction) {
         DC.Data.AddTransaction(new TransactionItem(2,TransactionActivityEnum.New, Key, this));
@@ -112,7 +112,7 @@ namespace MusicPlayer  {
       Name = csvReader.ReadString();
       NameLower = Name.ToLowerInvariant();
       DC.Data._PlaylistsByNameLower.Add(NameLower, this);
-      tracks = new StorageList<PlaylistTrack>();
+      playlistTracks = new StorageList<PlaylistTrack>();
       onCsvConstruct();
     }
     partial void onCsvConstruct();
@@ -218,32 +218,32 @@ namespace MusicPlayer  {
 
 
     /// <summary>
-    /// Add playlistTrack to Tracks.
+    /// Add playlistTrack to PlaylistTracks.
     /// </summary>
-    internal void AddToTracks(PlaylistTrack playlistTrack) {
+    internal void AddToPlaylistTracks(PlaylistTrack playlistTrack) {
 #if DEBUG
       if (playlistTrack==PlaylistTrack.NoPlaylistTrack) throw new Exception();
       if ((playlistTrack.Key>=0)&&(Key<0)) throw new Exception();
-      if (tracks.Contains(playlistTrack)) throw new Exception();
+      if (playlistTracks.Contains(playlistTrack)) throw new Exception();
 #endif
-      tracks.Add(playlistTrack);
-      onAddedToTracks(playlistTrack);
+      playlistTracks.Add(playlistTrack);
+      onAddedToPlaylistTracks(playlistTrack);
     }
-    partial void onAddedToTracks(PlaylistTrack playlistTrack);
+    partial void onAddedToPlaylistTracks(PlaylistTrack playlistTrack);
 
 
     /// <summary>
     /// Removes playlistTrack from Playlist.
     /// </summary>
-    internal void RemoveFromTracks(PlaylistTrack playlistTrack) {
+    internal void RemoveFromPlaylistTracks(PlaylistTrack playlistTrack) {
 #if DEBUG
-      if (!tracks.Remove(playlistTrack)) throw new Exception();
+      if (!playlistTracks.Remove(playlistTrack)) throw new Exception();
 #else
-        tracks.Remove(playlistTrack);
+        playlistTracks.Remove(playlistTrack);
 #endif
-      onRemovedFromTracks(playlistTrack);
+      onRemovedFromPlaylistTracks(playlistTrack);
     }
-    partial void onRemovedFromTracks(PlaylistTrack playlistTrack);
+    partial void onRemovedFromPlaylistTracks(PlaylistTrack playlistTrack);
 
 
     /// <summary>
@@ -253,16 +253,18 @@ namespace MusicPlayer  {
       if (Key<0) {
         throw new Exception($"Playlist.Release(): Playlist '{this}' is not stored in DC.Data, key is {Key}.");
       }
-      foreach (var playlistTrack in Tracks) {
+      onReleasing();
+      foreach (var playlistTrack in PlaylistTracks) {
         if (playlistTrack?.Key>=0) {
           throw new Exception($"Cannot release Playlist '{this}' " + Environment.NewLine + 
-            $"because '{playlistTrack}' in Playlist.Tracks is still stored.");
+            $"because '{playlistTrack}' in Playlist.PlaylistTracks is still stored.");
         }
       }
       DC.Data._PlaylistsByNameLower.Remove(NameLower);
       DC.Data._Playlists.Remove(Key);
       onReleased();
     }
+    partial void onReleasing();
     partial void onReleased();
 
 
@@ -356,8 +358,8 @@ namespace MusicPlayer  {
         $"Key: {Key.ToKeyString()}," +
         $" Name: {Name}," +
         $" NameLower: {NameLower}," +
-        $" Tracks: {Tracks.Count}," +
-        $" TracksStored: {Tracks.CountStoredItems};";
+        $" PlaylistTracks: {PlaylistTracks.Count}," +
+        $" PlaylistTracksStored: {PlaylistTracks.CountStoredItems};";
       onToString(ref returnString);
       return returnString;
     }

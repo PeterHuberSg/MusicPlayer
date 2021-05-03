@@ -80,8 +80,8 @@ namespace MusicPlayer  {
       Playlist = playlist;
       Track = track;
       TrackNo = trackNo;
-      Playlist.AddToTracks(this);
-      Track.AddToPlaylists(this);
+      Playlist.AddToPlaylistTracks(this);
+      Track.AddToPlaylistTracks(this);
       onConstruct();
       if (DC.Data.IsTransaction) {
         DC.Data.AddTransaction(new TransactionItem(3,TransactionActivityEnum.New, Key, this));
@@ -120,10 +120,10 @@ namespace MusicPlayer  {
       Track = DC.Data._Tracks.GetItem(trackKey)?? Track.NoTrack;
       TrackNo = csvReader.ReadInt();
       if (Playlist!=Playlist.NoPlaylist) {
-        Playlist.AddToTracks(this);
+        Playlist.AddToPlaylistTracks(this);
       }
       if (Track!=Track.NoTrack) {
-        Track.AddToPlaylists(this);
+        Track.AddToPlaylistTracks(this);
       }
       onCsvConstruct();
     }
@@ -224,11 +224,11 @@ namespace MusicPlayer  {
       //remove not yet updated item from parents which will be removed by update
       var hasPlaylistChanged = Playlist!=playlist;
       if (hasPlaylistChanged) {
-        Playlist.RemoveFromTracks(this);
+        Playlist.RemoveFromPlaylistTracks(this);
       }
       var hasTrackChanged = Track!=track;
       if (hasTrackChanged) {
-        Track.RemoveFromPlaylists(this);
+        Track.RemoveFromPlaylistTracks(this);
       }
 
       //update properties and detect if any value has changed
@@ -248,10 +248,10 @@ namespace MusicPlayer  {
 
       //add updated item to parents which have been newly added during update
       if (hasPlaylistChanged) {
-        Playlist.AddToTracks(this);
+        Playlist.AddToPlaylistTracks(this);
       }
       if (hasTrackChanged) {
-        Track.AddToPlaylists(this);
+        Track.AddToPlaylistTracks(this);
       }
       if (isChangeDetected) {
         onUpdated(clone);
@@ -275,19 +275,19 @@ namespace MusicPlayer  {
           Playlist.NoPlaylist;
       if (playlistTrack.Playlist!=playlist) {
         if (playlistTrack.Playlist!=Playlist.NoPlaylist) {
-          playlistTrack.Playlist.RemoveFromTracks(playlistTrack);
+          playlistTrack.Playlist.RemoveFromPlaylistTracks(playlistTrack);
         }
         playlistTrack.Playlist = playlist;
-        playlistTrack.Playlist.AddToTracks(playlistTrack);
+        playlistTrack.Playlist.AddToPlaylistTracks(playlistTrack);
       }
         var track = DC.Data._Tracks.GetItem(csvReader.ReadInt())??
           Track.NoTrack;
       if (playlistTrack.Track!=track) {
         if (playlistTrack.Track!=Track.NoTrack) {
-          playlistTrack.Track.RemoveFromPlaylists(playlistTrack);
+          playlistTrack.Track.RemoveFromPlaylistTracks(playlistTrack);
         }
         playlistTrack.Track = track;
-        playlistTrack.Track.AddToPlaylists(playlistTrack);
+        playlistTrack.Track.AddToPlaylistTracks(playlistTrack);
       }
       playlistTrack.TrackNo = csvReader.ReadInt();
       playlistTrack.onCsvUpdate();
@@ -302,9 +302,11 @@ namespace MusicPlayer  {
       if (Key<0) {
         throw new Exception($"PlaylistTrack.Release(): PlaylistTrack '{this}' is not stored in DC.Data, key is {Key}.");
       }
+      onReleasing();
       DC.Data._PlaylistTracks.Remove(Key);
       onReleased();
     }
+    partial void onReleasing();
     partial void onReleased();
 
 
@@ -314,10 +316,10 @@ namespace MusicPlayer  {
     internal static void RollbackItemNew(IStorageItem item) {
       var playlistTrack = (PlaylistTrack) item;
       if (playlistTrack.Playlist!=Playlist.NoPlaylist) {
-        playlistTrack.Playlist.RemoveFromTracks(playlistTrack);
+        playlistTrack.Playlist.RemoveFromPlaylistTracks(playlistTrack);
       }
       if (playlistTrack.Track!=Track.NoTrack) {
-        playlistTrack.Track.RemoveFromPlaylists(playlistTrack);
+        playlistTrack.Track.RemoveFromPlaylistTracks(playlistTrack);
       }
       playlistTrack.onRollbackItemNew();
     }
@@ -344,11 +346,11 @@ namespace MusicPlayer  {
       // remove updated item from parents
       var hasPlaylistChanged = oldItem.Playlist!=item.Playlist;
       if (hasPlaylistChanged) {
-        item.Playlist.RemoveFromTracks(item);
+        item.Playlist.RemoveFromPlaylistTracks(item);
       }
       var hasTrackChanged = oldItem.Track!=item.Track;
       if (hasTrackChanged) {
-        item.Track.RemoveFromPlaylists(item);
+        item.Track.RemoveFromPlaylistTracks(item);
       }
 
       // updated item: restore old values
@@ -358,10 +360,10 @@ namespace MusicPlayer  {
 
       // add item with previous values to parents
       if (hasPlaylistChanged) {
-        item.Playlist.AddToTracks(item);
+        item.Playlist.AddToPlaylistTracks(item);
       }
       if (hasTrackChanged) {
-        item.Track.AddToPlaylists(item);
+        item.Track.AddToPlaylistTracks(item);
       }
       item.onRollbackItemUpdated(oldItem);
     }
@@ -414,8 +416,8 @@ namespace MusicPlayer  {
     public override string ToString() {
       var returnString =
         $"Key: {Key.ToKeyString()}," +
-        $" Playlist: {Playlist.ToShortString()}," +
-        $" Track: {Track.ToShortString()}," +
+        $" Playlist: {Playlist?.ToShortString()}," +
+        $" Track: {Track?.ToShortString()}," +
         $" TrackNo: {TrackNo};";
       onToString(ref returnString);
       return returnString;

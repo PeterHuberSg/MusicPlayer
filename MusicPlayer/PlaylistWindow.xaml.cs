@@ -31,16 +31,14 @@ namespace MusicPlayer {
     public static void Show(
       Window ownerWindow, 
       Playlist playlist, 
-      IEnumerable<PlaylistTrack>? additionalTracks = null, 
-      Action<Playlist>? refreshOwner = null) 
+      IEnumerable<PlaylistTrack>? additionalTracks = null) 
     {
-      var window = new PlaylistWindow(playlist, additionalTracks, refreshOwner) { Owner = ownerWindow };
+      var window = new PlaylistWindow(playlist, additionalTracks) { Owner = ownerWindow };
       window.Show();
     }
 
 
     readonly Playlist? playlist;
-    readonly Action<Playlist>? refreshOwner;
     readonly System.Windows.Data.CollectionViewSource tracksViewSource;
     readonly List<Track> tracks;
     List<TrackRow> trackRows;
@@ -53,9 +51,8 @@ namespace MusicPlayer {
     readonly List<string> years;
 
 
-    public PlaylistWindow(Playlist? playlist = null, IEnumerable<PlaylistTrack>? additionalPlaylistTracks = null, Action<Playlist>? refreshOwner = null) {
+    public PlaylistWindow(Playlist? playlist = null, IEnumerable<PlaylistTrack>? additionalPlaylistTracks = null) {
       this.playlist = playlist;
-      this.refreshOwner = refreshOwner;
 
       InitializeComponent();
 
@@ -76,7 +73,7 @@ namespace MusicPlayer {
       if (playlist is not null) {
         //there is usually a playlist, except when VS tries to display PlaylistWindow
         PlaylistNameTextBox.Text = playlist.Name;
-        foreach (var playlistTrack in playlist.Tracks.GetStoredItems().OrderBy(plt => plt.TrackNo)) {
+        foreach (var playlistTrack in playlist.PlaylistTracks.GetStoredItems().OrderBy(plt => plt.TrackNo)) {
           tracks.Add(playlistTrack.Track);
           var isAdditionalTrack = additionalPlaylistTracks?.Contains(playlistTrack)??false;
           var trackRow = new TrackRow(ref trackNo, playlistTrack, updateSelectedCountTextBox, isAdditionalTrack);
@@ -112,7 +109,7 @@ namespace MusicPlayer {
       PLAllButton.Click += plAllButton_Click;
       UnselectAllButton.Click += unselectAllButton_Click;
       ExecuteRemoveButton.Click += executeRemoveButton_Click;
-      AddToOtherPlaylistComboBox.ItemsSource = DC.Data.PlaylistStrings;
+      AddToOtherPlaylistComboBox.ItemsSource = DC.Data.PlaylistStrings.Where(pls => pls!=PlaylistNameTextBox.Text);
       AddToOtherPlaylistButton.Click += addToOtherPlaylistButton_Click;
 
       //datagrid
@@ -586,17 +583,32 @@ namespace MusicPlayer {
       var result = MessageBox.Show($"Do you want to remove {removalCount} track(s) from playlist {playlist!.Name}?", "Track Removal", MessageBoxButton.YesNo,
         MessageBoxImage.Question, MessageBoxResult.No);
       if (result==MessageBoxResult.Yes) {
+        Track? playingTrack = null;
+        if (Player.Current!.Playinglist!.Playlist==playlist) {
+          playingTrack = Player.Current.Track;
+        }
+        var isSkipTrackNeeded = false;
         var remainingTrackRows = new List<TrackRow>(trackRows.Count);
         foreach (var trackRow in trackRows) {
           if (trackRow.IsDeletion) {
-            foreach (var playlistsTrack in trackRow.Track.Playlists) {
+
+            if (playingTrack is not null && playingTrack==trackRow.Track) {
+              isSkipTrackNeeded = true;
+            }
+            PlaylistTrack? removePlaylistTrack = null;
+            foreach (var playlistsTrack in trackRow.Track.PlaylistTracks) {
               if (playlistsTrack.Playlist==playlist) {
-                playlistsTrack.Release();
+                removePlaylistTrack = playlistsTrack;//cannot release playlistsTrack within foreach
+                break; //a track can be included only once in a playlist
               }
             }
+            removePlaylistTrack?.Release();
           } else {
             remainingTrackRows.Add(trackRow);
           }
+        }
+        if (isSkipTrackNeeded) {
+          Player.Current!.PlayNextTrack();
         }
         remainingTrackRows.Sort((tr1, tr2) => { return tr1.PlaylistTrack.TrackNo.CompareTo(tr2.PlaylistTrack.TrackNo); });
         var trackNo = 0;
@@ -607,7 +619,8 @@ namespace MusicPlayer {
         tracksViewSource.Source = trackRows = remainingTrackRows;
         DurationTextBox.Text = playlist.TracksDurationHhMm;
         TracksCountTextBox.Text = tracks.Count.ToString();
-        MainWindow.Current!.RefreshPlaylistDataGrid(playlist);
+        MainWindow.Current!.UpdatePlaylistsDataGrid();
+        MainWindow.Current!.UpdatePlaylistDataGrid(playlist);
       }
     }
 
@@ -622,14 +635,16 @@ namespace MusicPlayer {
         playlist = new Playlist(playlistName);
       }
       var playlistTracks = new List<PlaylistTrack>();
-      var trackNo = playlist.Tracks.Count;
+      var trackNo = playlist.PlaylistTracks.Count;
       foreach (var item in TracksDataGrid.Items) {
         var trackRow = (TrackRow)item;
         if (trackRow.PlaylistCheckBoxIsEnabled &&  trackRow.IsAddPlaylist) {
           playlistTracks.Add(new PlaylistTrack(playlist, trackRow.Track, trackNo++));
         }
       }
-      PlaylistWindow.Show(this, playlist, playlistTracks, refreshTrackDataGrid);
+      MainWindow.Current!.UpdatePlaylistsDataGrid();
+      MainWindow.Current.UpdatePlaylistDataGrid(playlist);
+      PlaylistWindow.Show(this, playlist, playlistTracks);
     }
     #endregion
 
@@ -1036,7 +1051,6 @@ namespace MusicPlayer {
 
     private void playlistWindow_Closed(object? sender, EventArgs e) {
       TrackPlayer.TrackChanged -= trackPlayer_TrackChanged;
-      refreshOwner?.Invoke(playlist!);
       Owner?.Activate();
     }
     #endregion

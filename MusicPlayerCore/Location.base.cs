@@ -268,6 +268,7 @@ namespace MusicPlayer  {
       if (Key<0) {
         throw new Exception($"Location.Release(): Location '{this}' is not stored in DC.Data, key is {Key}.");
       }
+      onReleasing();
       foreach (var track in Tracks) {
         if (track?.Key>=0) {
           throw new Exception($"Cannot release Location '{this}' " + Environment.NewLine + 
@@ -278,6 +279,7 @@ namespace MusicPlayer  {
       DC.Data._Locations.Remove(Key);
       onReleased();
     }
+    partial void onReleasing();
     partial void onReleased();
 
 

@@ -7,12 +7,13 @@
         mc:Ignorable="d"
         Title="Peter's Music Player" Height="700" Width="1200" WindowState="Maximized">
   <Window.Resources>
-    <CollectionViewSource x:Key="PlayListsViewSource" CollectionViewType="ListCollectionView"/>
-    <CollectionViewSource x:Key="PlayListViewSource" CollectionViewType="ListCollectionView"/>
+    <CollectionViewSource x:Key="PlaylistsViewSource" CollectionViewType="ListCollectionView"/>
+    <CollectionViewSource x:Key="PlaylistViewSource" CollectionViewType="ListCollectionView"/>
   </Window.Resources>
 
   <Grid>
     <Grid.RowDefinitions>
+      <RowDefinition Height="auto"/>
       <RowDefinition Height="auto"/>
       <RowDefinition Height="*"/>
       <RowDefinition Height="auto"/>
@@ -26,8 +27,11 @@
 
     <Menu Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" x:Name="MainMenu"/>
 
-    <DataGrid Grid.Row="1" Grid.Column="0" Name="PlayListsDataGrid" 
-              DataContext="{StaticResource PlayListsViewSource}" ItemsSource="{Binding}" AutoGenerateColumns="False" 
+    <TextBlock Grid.Row="1" Grid.Column="0" Text="Playlists" FontSize="16" FontWeight="Bold"/>
+    <TextBlock Grid.Row="1" Grid.Column="2" x:Name="PlaylistContentTextBlock" Text="Playlist Content" FontSize="16" FontWeight="Bold"/>
+
+    <DataGrid Grid.Row="2" Grid.Column="0" Name="PlaylistsDataGrid" SelectionMode="Single"
+              DataContext="{StaticResource PlaylistsViewSource}" ItemsSource="{Binding}" AutoGenerateColumns="False" 
               EnableRowVirtualization="True" RowDetailsVisibilityMode="Collapsed" EnableColumnVirtualization="False"
               AllowDrop="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False">
       <DataGrid.Resources>
@@ -55,18 +59,18 @@
       </DataGrid.Columns>
     </DataGrid>
 
-    <GridSplitter Grid.Row="1" Grid.Column="1" Width="5" VerticalAlignment="Stretch" 
+    <GridSplitter Grid.Row="1" Grid.Column="1" Grid.RowSpan="2" Width="5" VerticalAlignment="Stretch" 
                   ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" >
       <GridSplitter.Background>
-        <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+        <LinearGradientBrush EndPoint="0,0.5" StartPoint="1,0.5">
           <GradientStop Color="AntiqueWhite" Offset="0" />
           <GradientStop Color="DarkGray" Offset="1" />
         </LinearGradientBrush>
       </GridSplitter.Background>
     </GridSplitter>
 
-    <DataGrid Grid.Row="1" Grid.Column="2" Name="PlayListDataGrid" 
-              DataContext="{StaticResource PlayListViewSource}" ItemsSource="{Binding}" AutoGenerateColumns="False" 
+    <DataGrid Grid.Row="2" Grid.Column="2" Name="PlaylistDataGrid" 
+              DataContext="{StaticResource PlaylistViewSource}" ItemsSource="{Binding}" AutoGenerateColumns="False" 
               EnableRowVirtualization="True" RowDetailsVisibilityMode="Collapsed" EnableColumnVirtualization="False"
               AllowDrop="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" 
               CanUserSortColumns="False" IsReadOnly="True">
@@ -102,7 +106,7 @@
       </DataGrid.Columns>
     </DataGrid>
 
-    <StatusBar Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Name="MainStatusBar" Background="Pink">
+    <StatusBar Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Name="MainStatusBar" Background="Pink">
       <local:PlayerControl x:Name="TrackPlayer"/>
       <Separator/>
       <TextBox x:Name="StatusTextBox" IsReadOnly="True"/>

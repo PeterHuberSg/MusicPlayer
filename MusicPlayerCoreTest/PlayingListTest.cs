@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
+
 namespace MusicPlayerCoreTest {
 
 
@@ -52,7 +53,7 @@ namespace MusicPlayerCoreTest {
           assert(expectedTrackKeys);
           playlist = DC.Data.Playlists[playlist.Key];
           playinglist = DC.Data.Playinglists[playlist];
-          var trackKey = playinglist.GetNext(random).Playlists[0].Track.Key;
+          var trackKey = playinglist.GetNext(random)!.PlaylistTracks[0].Track.Key;
           expectedTrackKeys.Remove(trackKey);
           DC.DisposeData();
         }
@@ -68,12 +69,12 @@ namespace MusicPlayerCoreTest {
             refill(expectedAllTrackKeys, expectedTrackKeys);
           }
           assert(expectedTrackKeys, playinglist);
-          var trackKey = playinglist.GetNext(random).Playlists[0].Track.Key;
+          var trackKey = playinglist.GetNext(random)!.PlaylistTracks[0].Track.Key;
           expectedTrackKeys.Remove(trackKey);
           DC.DisposeData();
         }
 
-        Console.WriteLine("Just for setting a breakpoint");
+        Assert.IsTrue(true);//Just for setting a breakpoint
 
       } finally {
         DC.DisposeData();

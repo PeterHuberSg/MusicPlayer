@@ -18,7 +18,10 @@ using BaseLib;
 using System.Collections;
 using System.Windows.Controls.Primitives;
 
+
 namespace MusicPlayer {
+
+
   /// <summary>
   /// Interaction logic for ImportWindow.xaml
   /// </summary>
@@ -28,20 +31,17 @@ namespace MusicPlayer {
     #region Constructor
     //      -----------
 
-    public static ImportWindow Show(Window ownerWindow, Action? refreshOwner) {
-      var window = new ImportWindow(refreshOwner) { Owner = ownerWindow };
+    public static ImportWindow Show(Window ownerWindow) {
+      var window = new ImportWindow() { Owner = ownerWindow };
       window.Show();
       return window;
     }
 
 
-    readonly Action? refreshOwner;
     readonly System.Windows.Data.CollectionViewSource tracksViewSource;
 
 
-   public ImportWindow(Action? refreshOwner) {
-      this.refreshOwner = refreshOwner;
-
+   public ImportWindow() {
       InitializeComponent();
 
       Loaded += importWindow_Loaded;
@@ -221,7 +221,7 @@ namespace MusicPlayer {
           PlaylistCheckBoxVisibility = Visibility.Hidden;
         } else {
           PlaylistCheckBoxVisibility = IsImport || IsExisting ? Visibility.Visible : Visibility.Hidden;
-          PlaylistCheckBoxIsEnabled =!Track.Playlists.Where(plt => plt.Playlist==playlist).Any();
+          PlaylistCheckBoxIsEnabled =!Track.PlaylistTracks.Where(plt => plt.Playlist==playlist).Any();
           if (PlaylistCheckBoxIsEnabled) {
             //track is not yet in playlist. User has just selected a playlist. 
             IsAddPlaylist = IsImport;
@@ -816,10 +816,12 @@ namespace MusicPlayer {
         };
 
         DC.Data.UpdateTracksStats();
+        MainWindow.Current!.UpdatePlaylistsDataGrid();
+        MainWindow.Current!.UpdateTracksStatistics();
 
         Close();
         if (playlistTracks.Count>0) {
-          PlaylistWindow.Show(Owner, playlist!, playlistTracks, ((MainWindow)Owner).RefreshPlaylistDataGrid);
+          PlaylistWindow.Show(Owner, playlist!, playlistTracks);
         }
       } catch (Exception ex) {
 
@@ -832,7 +834,6 @@ namespace MusicPlayer {
     private void memberWindow_Closed(object? sender, EventArgs e) {
       TrackPlayer.TrackChanged -= trackPlayer_TrackChanged;
 
-      refreshOwner?.Invoke();
       Owner?.Activate();
     }
     #endregion
