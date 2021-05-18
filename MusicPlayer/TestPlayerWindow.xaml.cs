@@ -124,9 +124,13 @@ https://creativecommons.org/licenses/by/3.0/deed.en_US"+ Environment.NewLine + E
     }
 
 
+    Track? track;
+
+
     private void Player_TrackChanged(Player player) {
       trace($"<<<Track changed {player.Track}");
       TrackTextBox.Text = player.Track?.Title??"";
+      track = player.Track;
     }
 
 
@@ -135,11 +139,15 @@ https://creativecommons.org/licenses/by/3.0/deed.en_US"+ Environment.NewLine + E
     }
 
 
+    TimeSpan position;
+
+
     private void Player_PositionChanged(Player player) {
       if (!PositionToggleButton.IsChecked!.Value) {
         trace($"<<<Position: {player.Position}");
       }
       PositionTextBox.Text = player.Position.ToString();
+      position = player.Position;
     }
 
 
@@ -175,27 +183,34 @@ https://creativecommons.org/licenses/by/3.0/deed.en_US"+ Environment.NewLine + E
     }
 
 
+    Playinglist? playinglist;
+
+
     private void Play1Button_Click(object sender, RoutedEventArgs e) {
       trace($">>>Play {track1.Title}");
-      player.Play(playerControl, track1);
+      playinglist = null;
+      player.Play(playerControl, null, track1, TimeSpan.Zero, ShuffleButton.IsChecked!.Value, volume);
     }
 
 
     private void Play2Button_Click(object sender, RoutedEventArgs e) {
       trace($">>>Play {track2.Title}");
-      player.Play(playerControl, track2);
+      playinglist = null;
+      player.Play(playerControl, null, track2, TimeSpan.Zero, ShuffleButton.IsChecked!.Value, volume);
     }
 
 
     private void PlayAllButton_Click(object sender, RoutedEventArgs e) {
       trace($">>>Play all");
-      player.Play(playerControl, allTracksPlayinglist);
+      playinglist = allTracksPlayinglist;
+      player.Play(playerControl, allTracksPlayinglist, null, TimeSpan.Zero, ShuffleButton.IsChecked!.Value, volume);
     }
 
 
     private void PlayErrorButton_Click(object sender, RoutedEventArgs e) {
       trace($">>>Play {trackError.Title}");
-      player.Play(playerControl, trackError);
+      playinglist = null;
+      player.Play(playerControl, null, trackError, TimeSpan.Zero, ShuffleButton.IsChecked!.Value, volume);
     }
 
 
@@ -213,7 +228,7 @@ https://creativecommons.org/licenses/by/3.0/deed.en_US"+ Environment.NewLine + E
 
     private void ResumeButton_Click(object sender, RoutedEventArgs e) {
       trace($">>>Resume");
-      player.Resume();
+      player.Resume(playerControl, playinglist, track!,  position, ShuffleButton.IsChecked!.Value, volume);
     }
 
 
@@ -227,15 +242,19 @@ https://creativecommons.org/licenses/by/3.0/deed.en_US"+ Environment.NewLine + E
 
 
     private void SkipNextTrackButton_Click(object sender, RoutedEventArgs e) {
-      player.PlayNextTrack();
+      player.PlayNextTrack(playerControl, allTracksPlayinglist, ShuffleButton.IsChecked!.Value, volume);
     }
+
+
+    double volume = 0.5;
 
 
     private void VolumeTextBox_TextChanged(object sender, TextChangedEventArgs e) {
       if (!isVolumeChangedEvent) {
-        if (double.TryParse(VolumeTextBox.Text, out double volume)) {
-          trace($">>>Volume {volume}");
-          player.SetVolume(volume);
+        if (double.TryParse(VolumeTextBox.Text, out double newVolume)) {
+          trace($">>>Volume {newVolume}");
+          player.SetVolume(newVolume);
+          volume = newVolume;
         }
       }
     }
@@ -244,11 +263,11 @@ https://creativecommons.org/licenses/by/3.0/deed.en_US"+ Environment.NewLine + E
     private void IsMuteButton_Click(object sender, RoutedEventArgs e) {
       if (IsMuteButton.IsChecked!.Value) {
         trace($">>>Mute");
-        player.Mute();
+        player.SetMute(true);
         IsMuteButton.Content = "Unmute";
       } else {
         trace($">>>UnMute");
-        player.UnMute();
+        player.SetMute(false);
         IsMuteButton.Content = "Mute";
       }
     }

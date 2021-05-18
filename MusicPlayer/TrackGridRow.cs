@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Media;
 
 namespace MusicPlayer {
 
@@ -27,8 +28,20 @@ namespace MusicPlayer {
   public class TrackGridRow: INotifyPropertyChanged {
     public int No { get; }
     public Track Track { get; }
-    public string? Playlists { get; set; }
- 
+
+
+    public string? Playlists {
+      get { return playlists; }
+      set {
+        if (playlists!=value) {
+          playlists = value;
+          PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Playlists)));
+        }
+      }
+    }
+    string? playlists { get; set; }
+
+
     /// <summary>
     /// Track is marked for deletion
     /// </summary>
@@ -99,6 +112,18 @@ namespace MusicPlayer {
     bool playlistCheckBoxIsEnabled;
 
 
+    public Brush RowBackground {
+      get { return rowBackground; }
+      set {
+        if (rowBackground!=value) {
+          rowBackground = value;
+          PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RowBackground)));
+        }
+      } 
+    }
+    Brush rowBackground = Brushes.White;
+
+
     //INotifyPropertyChanged interface
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -128,16 +153,17 @@ namespace MusicPlayer {
 
 
     public void UpdatePlaylists() {
-      Playlists = null;
+      string? newPlaylists = null;
       var isFirst = true;
       foreach (var playlistTrack in Track.PlaylistTracks) {
         if (isFirst) {
           isFirst = false;
         } else {
-          Playlists += '|';
+          newPlaylists += '|';
         }
-        Playlists += playlistTrack.Playlist.Name;
+        newPlaylists += playlistTrack.Playlist.Name;
       }
+      Playlists = newPlaylists;
     }
 
 

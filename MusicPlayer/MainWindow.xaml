@@ -35,6 +35,10 @@
               EnableRowVirtualization="True" RowDetailsVisibilityMode="Collapsed" EnableColumnVirtualization="False"
               AllowDrop="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False">
       <DataGrid.Resources>
+        <!--<SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="Blue"/>-->
+        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="{x:Static SystemColors.HighlightColor}"/>
+        <!--<SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="White"/>-->
+        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="White"/>
         <Style x:Key="RightAlignStyle" TargetType="TextBlock">
           <Setter Property="HorizontalAlignment" Value="Right" />
           <Setter Property="Margin" Value="2,0,2,0" />
@@ -75,6 +79,10 @@
               AllowDrop="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" 
               CanUserSortColumns="False" IsReadOnly="True">
       <DataGrid.Resources>
+        <!--<SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="Blue"/>-->
+        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="{x:Static SystemColors.HighlightColor}"/>
+        <!--<SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="White"/>-->
+        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="White"/>
         <Style x:Key="RightAlignStyle" TargetType="TextBlock">
           <Setter Property="HorizontalAlignment" Value="Right" />
           <Setter Property="Margin" Value="2,0,2,0" />

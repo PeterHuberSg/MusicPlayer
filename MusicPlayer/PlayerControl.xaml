@@ -565,7 +565,7 @@
       <Path x:Name="BackgroundPath" Stretch="Fill" Stroke="#5500AA"
             VerticalAlignment="Center"
             Data="M15,30 a25,25 0 0 1 1,-30 h100 a25,25 0 0 1 1,30  h-100  z">
-        <Path.Fill>
+        <!--<Path.Fill>
           <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
             <GradientStop Color="#DD0000"/>
             <GradientStop Color="#DD8800" Offset=".3"/>
@@ -573,10 +573,9 @@
             <GradientStop Color="#DD8800" Offset=".7"/>
             <GradientStop Color="#DD0000" Offset="1"/>
           </LinearGradientBrush>
-        </Path.Fill>
+        </Path.Fill>-->
       </Path>
     </Viewbox>
-
     <local:PlayerButton Grid.Column="2" x:Name="PlayButton" Type="Play"/>
     <local:PlayerButton Grid.Column="3" x:Name="PauseButton" Type="Pause" IsEnabled="False"/>
     <local:PlayerButton Grid.Column="4" x:Name="NextButton" Type="Next" IsEnabled="False"/>

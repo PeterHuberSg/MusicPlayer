@@ -270,6 +270,7 @@ namespace MusicPlayer {
     private void addMenus() {
       _ = addSubMenu(MainMenu, "_Tracks", () => TracksWindow.Show(this), isEnabled: true, isOneTime: false);
       _ = addSubMenu(MainMenu, "_Import", () => ImportWindow.Show(this), isEnabled: true, isOneTime: true);
+      _ = addSubMenu(MainMenu, "_Test2", () => Test2Window.Show(this), isEnabled: true, isOneTime: false);
 
       windowsMenu = addSubMenu(MainMenu, "_Windows");
     }

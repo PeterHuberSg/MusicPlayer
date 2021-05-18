@@ -31,14 +31,16 @@ namespace MusicPlayer {
     public static void Show(
       Window ownerWindow, 
       Playlist playlist, 
-      IEnumerable<PlaylistTrack>? additionalTracks = null) 
+      IEnumerable<PlaylistTrack>? additionalTracks = null,
+      Action? refreshOwner = null) 
     {
-      var window = new PlaylistWindow(playlist, additionalTracks) { Owner = ownerWindow };
+      var window = new PlaylistWindow(playlist, additionalTracks, refreshOwner) { Owner = ownerWindow };
       window.Show();
     }
 
 
     readonly Playlist? playlist;
+    readonly Action? refreshOwner;
     readonly System.Windows.Data.CollectionViewSource tracksViewSource;
     readonly List<Track> tracks;
     List<TrackRow> trackRows;
@@ -51,13 +53,22 @@ namespace MusicPlayer {
     readonly List<string> years;
 
 
-    public PlaylistWindow(Playlist? playlist = null, IEnumerable<PlaylistTrack>? additionalPlaylistTracks = null) {
+    public PlaylistWindow(
+      Playlist? playlist = null, 
+      IEnumerable<PlaylistTrack>? additionalPlaylistTracks = null, 
+      Action? refreshOwner = null) 
+    {
       this.playlist = playlist;
+      this.refreshOwner = refreshOwner;
 
       InitializeComponent();
 
+      Width = SystemParameters.PrimaryScreenWidth * .8;
+      Height = SystemParameters.PrimaryScreenHeight * .8;
+
       Loaded += playlistWindow_Loaded;
       Closing += PlaylistWindow_Closing;
+      Closed += playlistWindow_Closed;
 
       //tracks
       tracks = new();
@@ -82,7 +93,7 @@ namespace MusicPlayer {
             firstAddedTrackRow = trackRow;
           }
         }
-        DurationTextBox.Text = playlist.TracksDurationHhMm;
+         DurationTextBox.Text = playlist.TracksDurationHhMm;
         DC.GetTracksStats(ref totalDuration, locations, albums, artists, genres, years, tracks);
       }
 
@@ -123,7 +134,6 @@ namespace MusicPlayer {
       TracksDataGrid.Sorting += tracksDataGrid_Sorting;
       TracksDataGrid.SelectionChanged += tracksDataGrid_SelectionChanged;
       TracksDataGrid.LayoutUpdated += TracksDataGrid_LayoutUpdated;
-      TracksDataGrid.MouseDoubleClick += tracksDataGrid_MouseDoubleClick;
       BeginningButton.Click += beginningButton_Click;
       UpPageButton.Click += upPageButton_Click;
       UpRowButton.Click += upRowButton_Click;
@@ -133,9 +143,16 @@ namespace MusicPlayer {
       SaveButton.Click += saveButton_Click;
       SaveButton.IsEnabled = false;
 
+      //Replaced: TracksDataGrid.MouseDoubleClick += tracksDataGrid_MouseDoubleClick;
+      //Style rowStyle = new Style(typeof(DataGridRow));
+      //rowStyle.Setters.Add(new EventSetter(DataGridRow.MouseDoubleClickEvent,
+      //                         new MouseButtonEventHandler(tracksDataGrid_MouseDoubleClick)));
+      //TracksDataGrid.RowStyle = rowStyle;
+      TracksDataGrid.RowStyle.Setters.Add(new EventSetter(DataGridRow.MouseDoubleClickEvent,
+                               new MouseButtonEventHandler(tracksDataGrid_MouseDoubleClick)));
+
       TrackPlayer.TrackChanged += trackPlayer_TrackChanged;
       TrackPlayer.Init(getPlayinglist);
-      Closed += playlistWindow_Closed;
 
       MainWindow.Register(this, "Playlist " + playlist?.Name);
     }
@@ -148,7 +165,6 @@ namespace MusicPlayer {
     public class TrackRow: TrackGridRow {
       public PlaylistTrack PlaylistTrack { get; }
       public bool IsAdditionalTrack { get; }
-      public Brush RowBackground { get; }
       public int PlaylistTrackNo {
         get {
           return playlistTrackNo;
@@ -584,7 +600,7 @@ namespace MusicPlayer {
         MessageBoxImage.Question, MessageBoxResult.No);
       if (result==MessageBoxResult.Yes) {
         Track? playingTrack = null;
-        if (Player.Current!.Playinglist!.Playlist==playlist) {
+        if (Player.Current!.Playinglist?.Playlist==playlist) {
           playingTrack = Player.Current.Track;
         }
         var isSkipTrackNeeded = false;
@@ -608,7 +624,7 @@ namespace MusicPlayer {
           }
         }
         if (isSkipTrackNeeded) {
-          Player.Current!.PlayNextTrack();
+          TrackPlayer.PlayNextTrack();
         }
         remainingTrackRows.Sort((tr1, tr2) => { return tr1.PlaylistTrack.TrackNo.CompareTo(tr2.PlaylistTrack.TrackNo); });
         var trackNo = 0;
@@ -660,7 +676,11 @@ namespace MusicPlayer {
     }
 
 
+    Track? playingTrack;
+
+
     private void trackPlayer_TrackChanged(Track? track) {
+      playingTrack = track;
       if (track is null) return;
 
       for (int itemIndex = 0; itemIndex < TracksDataGrid.Items.Count; itemIndex++) {
@@ -1052,6 +1072,7 @@ namespace MusicPlayer {
     private void playlistWindow_Closed(object? sender, EventArgs e) {
       TrackPlayer.TrackChanged -= trackPlayer_TrackChanged;
       Owner?.Activate();
+      refreshOwner?.Invoke();
     }
     #endregion
 
@@ -1059,11 +1080,20 @@ namespace MusicPlayer {
     #region Methods
     //      -------
 
+    Playinglist? playinglist;
+
+
     private Playinglist? getPlayinglist() {
       if (TracksDataGrid.SelectedItems.Count==0) {
         System.Diagnostics.Debugger.Break();
         return null;
+
       } else if (TracksDataGrid.SelectedItems.Count==1) {
+        if (playingTrack==((TrackRow)TracksDataGrid.SelectedItem).Track) {
+          //in the grid selected track is already playing, just return the previously created playinglist
+          return playinglist;
+        }
+
         var tracks = new List<Track>();
         for (int rowIndex = TracksDataGrid.SelectedIndex; rowIndex<TracksDataGrid.Items.Count; rowIndex++) {
           tracks.Add(((TrackRow)TracksDataGrid.Items[rowIndex]).Track);
@@ -1071,12 +1101,27 @@ namespace MusicPlayer {
         for (int rowIndex = 0; rowIndex<TracksDataGrid.SelectedIndex; rowIndex++) {
           tracks.Add(((TrackRow)TracksDataGrid.Items[rowIndex]).Track);
         }
-        return new Playinglist(tracks);
+        playinglist = new Playinglist(tracks);
+        foreach (var item in TracksDataGrid.Items) {
+          var trackRow = (TrackRow)item;
+          trackRow.RowBackground = Brushes.White;
+        }
+        return playinglist;
+
       } else {
+        foreach (var item in TracksDataGrid.Items) {
+          var trackRow = (TrackRow)item;
+          trackRow.RowBackground = Brushes.White;
+        }
+        foreach (var item in TracksDataGrid.SelectedItems) {
+          var trackRow = (TrackRow)item;
+          trackRow.RowBackground = Brushes.LightBlue;
+        }
         var trackQuery =
           from object gridItem in TracksDataGrid.SelectedItems
           select ((TrackRow)gridItem).Track;
-        return new Playinglist(trackQuery);
+        playinglist = new Playinglist(trackQuery);
+        return playinglist;
       }
     }
     #endregion

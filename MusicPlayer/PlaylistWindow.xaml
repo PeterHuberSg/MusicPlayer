@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MusicPlayer"
         mc:Ignorable="d"
-        Title="PlaylistWindow" WindowState="Maximized" d:Width="1200">
+        Title="PlaylistWindow">
   <Window.Resources>
     <CollectionViewSource x:Key="TracksViewSource" CollectionViewType="ListCollectionView"/>
   </Window.Resources>
@@ -146,9 +146,9 @@
               EnableRowVirtualization="True" RowDetailsVisibilityMode="Collapsed" EnableColumnVirtualization="False"
               AllowDrop="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False">
         <DataGrid.Resources>
-          <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="Blue"/>
-          <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="Blue"/>
-          <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="White"/>
+          <!--<SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="Blue"/>-->
+          <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="{x:Static SystemColors.HighlightColor}"/>
+          <!--<SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="White"/>-->
           <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="White"/>
           <Style x:Key="RightAlignStyle" TargetType="TextBlock">
             <Setter Property="HorizontalAlignment" Value="Right" />

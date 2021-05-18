@@ -337,7 +337,7 @@ namespace MusicPlayerCoreTest {
 
     private PlayinglistRecord createPlayingList(PlaylistRecord playlistRecord) {
       var playlist = DC.Data.Playlists[playlistRecord.Key];
-      var playinglist = new Playinglist(playlist.PlaylistTracks);
+      var playinglist = new Playinglist(playlist);
 
       var playinglistRecord = new PlayinglistRecord(playlistRecord!);
       if (playlistRecord.PlayinglistRecords.Count!=0) Assert.Fail();

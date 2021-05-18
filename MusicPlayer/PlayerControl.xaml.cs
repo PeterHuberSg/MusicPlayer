@@ -26,10 +26,25 @@ namespace MusicPlayer {
       get {
         return isPlayerOwner;
       }
-      set {
+      private set {
         if (isPlayerOwner!=value) {
           isPlayerOwner = value;
           BackgroundPath.Fill = value ? darkBackgroundBrush : lightBackgroundBrush;
+          if (isPlayerOwner) {
+            //just became owner of Player, this only happens with Play, Resume or Skip
+            playerState = PlayerStateEnum.Playing;
+            updatePauseButton();
+            updateNextButton(Player.Current!);
+          } else {
+            if (playerState==PlayerStateEnum.Playing) {
+              playerState = PlayerStateEnum.Paused;
+            }
+            updatePauseButton();
+            //if (PauseButton.IsEnabled) {
+            //  PauseButton.IsEnabled = false;
+            //  PauseButton.InvalidateVisual();
+            //}
+          }
         }
       }
     }
@@ -69,9 +84,13 @@ namespace MusicPlayer {
         Player.Current!.CanSkipTrackChanged += player_CanSkipTrackChanged;
         Player.Current.StateChanged += player_StateChanged;
         Player.Current.ErrorMessageChanged += player_ErrorMessageChanged;
+        Player.Current.TrackChanged += player_TrackChanged;
         Player.Current.PositionChanged += player_PositionChanged;
         Player.Current.VolumeChanged += player_VolumeChanged;
-        player_CanSkipTrackChanged(Player.Current);
+        Player.Current.IsMutedChanged += player_IsMutedChanged;
+        //player_CanSkipTrackChanged(Player.Current);
+
+        BackgroundPath.Fill = lightBackgroundBrush;
       }
     }
     #endregion
@@ -101,22 +120,54 @@ namespace MusicPlayer {
       thumbRectangle.Fill = PlayerButton.ButtonSymbolFillBrush;
     }
 
-
+    
     private void playButton_Click(object sender, RoutedEventArgs e) {
       if (getPlayingList is not null) {
-        var playinglist = getPlayingList();
-        if (playinglist is not null) {
-          Player.Current!.Play(this, playinglist);
+        var newPlayinglist = getPlayingList();
+        if (playinglist!=newPlayinglist) {
+          playinglist = newPlayinglist;
+          Player.Current!.Play(this, playinglist, null, TimeSpan.FromMilliseconds(PositionScrollBar.Value), ShuffleButton.IsPressed, VolumeSlider.Value);
+        } else if (!isPlayerOwner) {
+          Player.Current!.Play(this, playinglist, track, TimeSpan.FromMilliseconds(PositionScrollBar.Value), ShuffleButton.IsPressed, VolumeSlider.Value);
         }
       }
+      //if (isPlayerOwner) {
+      //  // This PlayerControl is already controlling the player. Start playing a new Playinglist
+      //  playNewPlaylist();
+      //} else {
+      //  //This PlayerControl is not yet controlling the player. 
+      //  if (track is null) {
+      //    //This PlayerControl has not played recently.  Start playing a new Playinglist
+      //    playNewPlaylist();
+      //  } else {
+      //    //continue playing the current track
+      //    Player.Current!.Play(this, playinglist, track, TimeSpan.FromMilliseconds(PositionScrollBar.Value), ShuffleButton.IsPressed, VolumeSlider.Value);
+      //  }
+      //}
     }
+
+    private void executePlay() {
+      throw new NotImplementedException();
+    }
+
+    Playinglist? playinglist;
+
+
+    //private void playNewPlaylist() {
+    //  if (getPlayingList is not null) {
+    //    playinglist = getPlayingList();
+    //    if (playinglist is not null) {
+    //      Player.Current!.Play(this, playinglist, null, TimeSpan.FromMilliseconds(PositionScrollBar.Value), ShuffleButton.IsPressed, VolumeSlider.Value);
+    //    }
+    //  }
+    //}
 
 
     private void pauseButton_Click(object sender, RoutedEventArgs e) {
       if (PauseButton.IsPressed) {
         Player.Current?.Pause();
       } else {
-        Player.Current?.Resume();
+        Player.Current?.Resume(this, playinglist, track!, TimeSpan.FromMilliseconds(PositionScrollBar.Value), ShuffleButton.IsPressed, VolumeSlider.Value);
       }
     }
 
@@ -128,12 +179,14 @@ namespace MusicPlayer {
         return;
       }
 
-      Player.Current.PlayNextTrack();
+      Player.Current.PlayNextTrack(this, playinglist!, ShuffleButton.IsPressed, VolumeSlider.Value);
     }
 
 
     private void ShuffleButton_Click(object sender, RoutedEventArgs e) {
-      Player.Current!.IsShuffle = ShuffleButton.IsPressed;
+      if (isPlayerOwner) {
+        Player.Current!.IsShuffle = ShuffleButton.IsPressed;
+      }
     }
 
 
@@ -142,10 +195,8 @@ namespace MusicPlayer {
 
 
     private void muteButton_Click(object sender, RoutedEventArgs e) {
-      if (MuteButton.IsPressed) {
-        Player.Current?.Mute();
-      } else {
-        Player.Current?.UnMute();
+      if (!isMutedFeedback) {
+        Player.Current?.SetMute(MuteButton.IsPressed);
       }
     }
 
@@ -164,7 +215,9 @@ namespace MusicPlayer {
       } else if (!isPositionChangedByPlayer && !isScrolling && !isNewTrackStartDetected) {
         //scrollLineButton of Scrollbar was pressed.
         if (PositionScrollBar.Value<PositionScrollBar.Maximum*.98) {
-          Player.Current?.SetPosition(TimeSpan.FromMilliseconds(PositionScrollBar.Value));
+          if (isPlayerOwner && playerState==PlayerStateEnum.Playing) {
+            Player.Current?.SetPosition(TimeSpan.FromMilliseconds(PositionScrollBar.Value));
+          }
         }
       }
     }
@@ -180,7 +233,9 @@ namespace MusicPlayer {
 
     private void thumb_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e) {
       isThumbTragging = false;
-      Player.Current?.SetPosition(TimeSpan.FromMilliseconds(PositionScrollBar.Value));
+      if (isPlayerOwner && playerState==PlayerStateEnum.Playing) {
+        Player.Current?.SetPosition(TimeSpan.FromMilliseconds(PositionScrollBar.Value));
+      }
     }
 
 
@@ -194,7 +249,9 @@ namespace MusicPlayer {
         isScrolling = true;
         PositionScrollBar.Value = PositionScrollBar.Value * mousePosition.X / scrollRepeatButtonLeft.ActualWidth;
         isScrolling = false;
-        Player.Current?.SetPosition(TimeSpan.FromMilliseconds(PositionScrollBar.Value));
+        if (isPlayerOwner && playerState==PlayerStateEnum.Playing) {
+          Player.Current?.SetPosition(TimeSpan.FromMilliseconds(PositionScrollBar.Value));
+        }
       }
     }
 
@@ -206,14 +263,18 @@ namespace MusicPlayer {
         isScrolling = true;
         PositionScrollBar.Value += (PositionScrollBar.Maximum - PositionScrollBar.Value) * mousePosition.X / scrollRepeatButtonRight.ActualWidth;
         isScrolling = false;
-        Player.Current?.SetPosition(TimeSpan.FromMilliseconds(PositionScrollBar.Value));
+        if (isPlayerOwner && playerState==PlayerStateEnum.Playing) {
+          Player.Current?.SetPosition(TimeSpan.FromMilliseconds(PositionScrollBar.Value));
+        }
       }
     }
 
 
     private void volumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
       if (!isVolumeFeedback) {
-        Player.Current?.SetVolume(VolumeSlider.Value);
+        if (isPlayerOwner) {
+          Player.Current?.SetVolume(VolumeSlider.Value);
+        }
       }
     }
     #endregion
@@ -227,17 +288,28 @@ namespace MusicPlayer {
     }
 
 
+    PlayerStateEnum playerState;
+
+
     private void player_StateChanged(Player player) {
+      if (!isPlayerOwner) return;
+
+      playerState = player.State;
       updateInfoTextBox(player);
       //normally, the PlayButton is in the correct state, but once the player becomes idle (or error), it should switch from
       // displaying the stop symbol to displaying the play symbol
 
+      updatePauseButton();
+    }
+
+
+    private void updatePauseButton() {
       bool isEnabled, isPressed;
-      switch (player.State) {
-      case PlayerStateEnum.Idle:    isEnabled = false; isPressed = false; break;
-      case PlayerStateEnum.Playing: isEnabled = true;  isPressed = false; break;
-      case PlayerStateEnum.Paused:  isEnabled = true;  isPressed = true; break;
-      case PlayerStateEnum.Error:   isEnabled = true;  isPressed = false; break;
+      switch (playerState) {
+      case PlayerStateEnum.Idle: isEnabled = false; isPressed = false; break;
+      case PlayerStateEnum.Playing: isEnabled = true; isPressed = false; break;
+      case PlayerStateEnum.Paused: isEnabled = true; isPressed = true; break;
+      case PlayerStateEnum.Error: isEnabled = true; isPressed = false; break;
       default:
         throw new NotSupportedException();
       }
@@ -250,6 +322,8 @@ namespace MusicPlayer {
 
 
     private void player_ErrorMessageChanged(Player player) {
+      if (!isPlayerOwner) return;
+
       if (player.ErrorMessage.Length==0) {
         InfoTextBox.ToolTip = null;
       } else {
@@ -307,11 +381,23 @@ namespace MusicPlayer {
     //}
 
 
+    Track? track;
+
+
+    private void player_TrackChanged(Player player) {
+      if (isPlayerOwner) {
+        track = player.Track;
+      }
+    }
+
+
     string actualPositionText;
     bool isPositionChangedByPlayer;
 
 
     private void player_PositionChanged(Player player) {
+      if (!isPlayerOwner) return;
+
       if (!isThumbTragging) {
         var position = player.Position;
         actualPositionText = position.Ticks>0 ? $" {(int)position.TotalMinutes}:{position.Seconds:00} of" : "";
@@ -327,17 +413,38 @@ namespace MusicPlayer {
 
 
     private void player_VolumeChanged(Player player) {
+      if (!isPlayerOwner) return;
+
       var volume = player.Volume;
-      MuteButton.IsPressed = volume==0;
       isVolumeFeedback = true;
       VolumeSlider.Value = volume;
       isVolumeFeedback = false;
     }
 
 
+    bool isMutedFeedback;
+
+
+    private void player_IsMutedChanged(Player player) {
+      isMutedFeedback = true;
+      MuteButton.IsPressed = player.IsMuted;
+      isMutedFeedback = false;
+    }
+
+
+
     private void player_CanSkipTrackChanged(Player player) {
-      NextButton.IsEnabled = player.CanSkipTrack;
-      NextButton.InvalidateVisual();
+      if (!isPlayerOwner) return;
+
+      updateNextButton(player);
+    }
+
+
+    private void updateNextButton(Player player) {
+      if (NextButton.IsEnabled!=player.CanSkipTrack) {
+        NextButton.IsEnabled = player.CanSkipTrack;
+        NextButton.InvalidateVisual();
+      }
     }
 
 
@@ -345,10 +452,14 @@ namespace MusicPlayer {
       if (Player.Current?.OwnerPlayerControl==this) {
         Player.Current!.Release(this);
       }
-      Player.Current!.StateChanged -= player_StateChanged;
+      Player.Current!.OwnerChanged -= player_OwnerChanged;
+      Player.Current.CanSkipTrackChanged -= player_CanSkipTrackChanged;
+      Player.Current.StateChanged -= player_StateChanged;
+      Player.Current.ErrorMessageChanged -= player_ErrorMessageChanged;
+      Player.Current.TrackChanged -= player_TrackChanged;
       Player.Current.PositionChanged -= player_PositionChanged;
       Player.Current.VolumeChanged -= player_VolumeChanged;
-      Player.Current.CanSkipTrackChanged -= player_CanSkipTrackChanged;
+      Player.Current.IsMutedChanged -= player_IsMutedChanged;
     }
     #endregion
     #endregion
@@ -372,14 +483,28 @@ namespace MusicPlayer {
 
 
     public void Play(Track track) {
-      NextButton.IsEnabled = false;
-      Player.Current?.Play(this, track);
+      if (NextButton.IsEnabled) {
+        NextButton.IsEnabled = false;
+        NextButton.InvalidateVisual();
+      }
+      playinglist = null;
+      Player.Current?.Play(this, null, track, TimeSpan.Zero, ShuffleButton.IsPressed, VolumeSlider.Value);
     }
 
 
     public void Play(Playinglist allTracksPlayinglist) {
-      NextButton.IsEnabled = true;
-      Player.Current?.Play(this, allTracksPlayinglist);
+      if (!NextButton.IsEnabled) {
+        NextButton.IsEnabled = true;
+        NextButton.InvalidateVisual();
+      }
+      playinglist = allTracksPlayinglist;
+      Player.Current?.Play(this, playinglist, null, TimeSpan.Zero, ShuffleButton.IsPressed, VolumeSlider.Value);
+    }
+
+
+
+    public void PlayNextTrack() {
+      Player.Current!.PlayNextTrack(this, playinglist!, ShuffleButton.IsPressed, VolumeSlider.Value);
     }
 
 
@@ -404,8 +529,36 @@ namespace MusicPlayer {
     }
 
 
-    static Brush lightBackgroundBrush = Brushes.Orange;
-    static Brush darkBackgroundBrush = Brushes.Red;
+    static Brush lightBackgroundBrush1 = Brushes.Orange;
+    static Brush darkBackgroundBrush1 = Brushes.Yellow;
+
+    static LinearGradientBrush darkBackgroundBrush = new LinearGradientBrush(
+      new GradientStopCollection {
+        new GradientStop(Color.FromRgb(0xDD, 0x00, 0x00), 0),
+        new GradientStop(Color.FromRgb(0xDD, 0x88, 0x00), 0.2),
+        new GradientStop(Color.FromRgb(0xDD, 0xAA, 0x00), 0.5),
+        new GradientStop(Color.FromRgb(0xDD, 0x88, 0x00), 0.8),
+        new GradientStop(Color.FromRgb(0xDD, 0x00, 0x00), 1) },
+      new Point(0, 0), new Point(0, 1));
+
+    static LinearGradientBrush lightBackgroundBrush = new LinearGradientBrush(
+      new GradientStopCollection {
+        //new GradientStop(Color.FromRgb(0xEE, 0x80, 0x80), 0),
+        //new GradientStop(Color.FromRgb(0xEE, 0xA7, 0x80), 0.2),
+        //new GradientStop(Color.FromRgb(0xEE, 0xD5, 0x80), 0.5),
+        //new GradientStop(Color.FromRgb(0xEE, 0xA7, 0x80), 0.8),
+        //new GradientStop(Color.FromRgb(0xEE, 0x80, 0x80), 1) },
+        //new GradientStop(Color.FromRgb(0xE6, 0x78, 0x80), 0),
+        //new GradientStop(Color.FromRgb(0xE6, 0xBF, 0x80), 0.2),
+        //new GradientStop(Color.FromRgb(0xE6, 0xCD, 0x80), 0.5),
+        //new GradientStop(Color.FromRgb(0xE6, 0xBF, 0x80), 0.8),
+        //new GradientStop(Color.FromRgb(0xE6, 0x78, 0x80), 1) },
+        new GradientStop(Color.FromRgb(0xBE, 0x50, 0x50), 0),
+        new GradientStop(Color.FromRgb(0xBE, 0x77, 0x50), 0.2),
+        new GradientStop(Color.FromRgb(0xBE, 0xA5, 0x50), 0.5),
+        new GradientStop(Color.FromRgb(0xBE, 0x77, 0x50), 0.8),
+        new GradientStop(Color.FromRgb(0xBE, 0x50, 0x50), 1) },
+    new Point(0, 0), new Point(0, 1));
     #endregion
   }
 }

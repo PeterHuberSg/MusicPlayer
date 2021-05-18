@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MusicPlayer"
         mc:Ignorable="d"
-        Title="Tracks" Height="450" Width="1500" WindowState="Maximized">
+        Title="Tracks">
   <Window.Resources>
     <CollectionViewSource x:Key="TracksViewSource" CollectionViewType="ListCollectionView"/>
   </Window.Resources>
@@ -124,6 +124,10 @@
               EnableRowVirtualization="True" RowDetailsVisibilityMode="Collapsed" EnableColumnVirtualization="False"
               AllowDrop="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False">
       <DataGrid.Resources>
+        <!--<SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="{x:Static SystemColors.HighlightColor}"/>-->
+        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="{x:Static SystemColors.HighlightColor}"/>
+        <!--<SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="White"/>-->
+        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="White"/>
         <Style x:Key="RightAlignStyle" TargetType="TextBlock">
           <Setter Property="HorizontalAlignment" Value="Right" />
           <Setter Property="Margin" Value="2,0,2,0" />
@@ -144,6 +148,11 @@
           <Setter Property="HorizontalAlignment" Value="Center"/>
         </Style>
       </DataGrid.Resources>
+      <DataGrid.RowStyle>
+        <Style TargetType="DataGridRow">
+          <Setter Property="Background" Value="{Binding RelativeSource={RelativeSource Self}, Path=Item.RowBackground}"/>
+        </Style>
+      </DataGrid.RowStyle>
       <DataGrid.Columns>
         <DataGridTextColumn Binding="{Binding Path=No, StringFormat=N0}" Header="#" IsReadOnly="True"  
                             ElementStyle="{StaticResource RightAlignStyle}" Width="45"/>
@@ -158,7 +167,7 @@
         <DataGridTextColumn Binding="{Binding Path=Track.Genres}" Header="Genres" IsReadOnly="True" Width="*"/>
         <DataGridTextColumn Binding="{Binding Path=Track.Year}" Header="Year   " IsReadOnly="True" Width="SizeToHeader"/>
         <DataGridTextColumn Binding="{Binding Path=Track.Location.Name}" Header="Location" IsReadOnly="True" Width="2*"/>
-        <DataGridTextColumn Binding="{Binding Path=Playlists}" Header="Playlists" IsReadOnly="True" Width="2*"/>
+        <DataGridTextColumn Binding="{Binding Path=Playlists, Mode=OneWay}" Header="Playlists" IsReadOnly="True" Width="2*"/>
         <DataGridCheckBoxColumn Binding="{Binding Path=IsDeletion, UpdateSourceTrigger=PropertyChanged}" Header="Delete"
                                 ElementStyle="{StaticResource OneClickCheckBoxStyle}" HeaderStyle="{StaticResource DeleteHeaderStyle}"/>
         <DataGridTemplateColumn Header="PList" CellTemplate="{StaticResource PlaylistCheckBoxTemplate}"

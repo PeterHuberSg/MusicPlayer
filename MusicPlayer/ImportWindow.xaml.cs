@@ -44,6 +44,9 @@ namespace MusicPlayer {
    public ImportWindow() {
       InitializeComponent();
 
+      Width = SystemParameters.PrimaryScreenWidth * .8;
+      Height = SystemParameters.PrimaryScreenHeight * .8;
+
       Loaded += importWindow_Loaded;
 
       ChangeDirectoryButton.Click += changeDirectoryButton_Click;
@@ -69,7 +72,9 @@ namespace MusicPlayer {
       //datagrid
       tracksViewSource = ((System.Windows.Data.CollectionViewSource)this.FindResource("TracksViewSource"));
       tracksViewSource.Filter += tracksViewSource_Filter;
-      TracksDataGrid.MouseDoubleClick += tracksDataGrid_MouseDoubleClick;
+      //Replaced: TracksDataGrid.MouseDoubleClick += tracksDataGrid_MouseDoubleClick;
+      TracksDataGrid.RowStyle.Setters.Add(new EventSetter(DataGridRow.MouseDoubleClickEvent,
+                               new MouseButtonEventHandler(tracksDataGrid_MouseDoubleClick)));
       TracksDataGrid.KeyDown += tracksDataGrid_KeyDown;
       var contextMenu = new ContextMenu();
       var renameMenuItem = new MenuItem {Header = "Rename" };
@@ -184,6 +189,19 @@ namespace MusicPlayer {
 
       public bool IsExisting { get;} //track is already imported
       public bool IsDouble { get; set; } //2 tracks in the import list have the same name and artist
+
+
+      public Brush RowBackground {
+        get { return rowBackground; }
+        set {
+          if (rowBackground!=value) {
+            rowBackground = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RowBackground)));
+          }
+        }
+      }
+      Brush rowBackground = Brushes.White;
+
 
 #pragma warning disable CA2211 // Non-constant fields should not be visible
       public static Action? HasSelectedChanged;
@@ -731,11 +749,20 @@ namespace MusicPlayer {
     }
 
 
+    Playinglist? playinglist;
+
+
     private Playinglist? getPlayinglist() {
       if (TracksDataGrid.SelectedItems.Count==0) {
         System.Diagnostics.Debugger.Break();
         return null;
+
       } else if (TracksDataGrid.SelectedItems.Count==1) {
+        if (playingTrack==((TrackRow)TracksDataGrid.SelectedItem).Track) {
+          //in the grid selected track is already playing, just return the previously created playinglist
+          return playinglist;
+        }
+
         var tracks = new List<Track>();
         for (int rowIndex = TracksDataGrid.SelectedIndex; rowIndex<TracksDataGrid.Items.Count; rowIndex++) {
           tracks.Add(((TrackRow)TracksDataGrid.Items[rowIndex]).Track);
@@ -743,18 +770,37 @@ namespace MusicPlayer {
         for (int rowIndex = 0; rowIndex<TracksDataGrid.SelectedIndex; rowIndex++) {
           tracks.Add(((TrackRow)TracksDataGrid.Items[rowIndex]).Track);
         }
-        return new Playinglist(tracks);
+        playinglist = new Playinglist(tracks);
+        foreach (var item in TracksDataGrid.Items) {
+          var trackRow = (TrackRow)item;
+          trackRow.RowBackground = Brushes.White;
+        }
+        return playinglist;
+
       } else {
+        foreach (var item in TracksDataGrid.Items) {
+          var trackRow = (TrackRow)item;
+          trackRow.RowBackground = Brushes.White;
+        }
+        foreach (var item in TracksDataGrid.SelectedItems) {
+          var trackRow = (TrackRow)item;
+          trackRow.RowBackground = Brushes.LightBlue;
+        }
         var trackQuery =
           from object gridItem in TracksDataGrid.SelectedItems
           select ((TrackRow)gridItem).Track;
-        return new Playinglist(trackQuery);
+        playinglist = new Playinglist(trackQuery);
+        return playinglist;
       }
     }
     #endregion
 
 
-    private void trackPlayer_TrackChanged(Track? track) {
+    Track? playingTrack;
+
+
+   private void trackPlayer_TrackChanged(Track? track) {
+      playingTrack = track;
       if (track is null) return;
 
       for (int itemIndex = 0; itemIndex < TracksDataGrid.Items.Count; itemIndex++) {
