@@ -43,6 +43,53 @@ replacement for a database with the advantages:
 + all data stored in RAM, resulting in extremly fast data access using LINQ.
 
 
+## Configuration
 
+I am working to improve how you can configure the lcoations where the .CSV files 
+get stored. In the meantime, you have to enter this information in the file 
+MusicPlayerCore\DC.cs, lines 16 - 21:
 
+    public const string CsvFilePath = @"C:\Users\Peter\OneDrive\OneDriveData\MusicPlayer";
+    public const string BackupFilePath = @"E:\MusicPlayerBackup";
+
+    //test
+    public const string CsvTestFilePath = @"E:\MusicPlayerCsvTest";
+    public const string? BackupTestFilePath = null;
+
+**CsvFilePath:** where the actual data gets stored. I keep it in a OneDrive directory to 
+get an immediate online backup.
+
+**BackupFilePath:** When MusicPlayer stops, it copies all .CSV files to this path.
+
+For testing:
+
+**CsvTestFilePath:** When switching to test mode, all .Csv files get copied to this path 
+and all Musicplayer operations use these files.
+
+**BackupTestFilePath:** Since the test data gets copied over from the real data each 
+time testing starts, usually no testing backup directory is needed.
+
+## VS Solution MusicPlayer Project Structure
+
+### Project MusicPlayer
+Contains the WPF application, which starts with MainWindow. MainWindow.xaml.cs starts 
+the data Layer MusicPlayerCore.
+
+### Project MusicPlayerCore
+MusicPlayerCore contains all the auto generated classes with names like xxx.base.cs. 
+They contain classes for Tracks, Playlists, PlaylistTracks, etc. The developer can 
+add functionality to the auto created classes by adding a xxx.cs file.
+
+DC.base.cs is the data context and gives static access to all data like this:
+DC.Data.Xxxs
+
+### Project MusicModel
+
+MusicModel contains the data model. In there I have defined classes like Track and all 
+its properties. *StorageLib* then created the classes like Track.base.cs. Each time 
+an instance of Track gets created, updated or deleted, a copy gets maintained in the
+Track.CSV file. On startup of MusicPlayer, these .CSV files get read and all the 
+data made available in Ram, like DC.Data.Tracks.
+
+For more details see [StorageLib](http://github.com/PeterHuberSg/StorageLib)
 
