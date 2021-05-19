@@ -14,6 +14,9 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{508BBF93-AF24-48B1-8820-470E458E7713}"
 	ProjectSection(SolutionItems) = preProject
 		Design.pptx = Design.pptx
+		Filter.png = Filter.png
+		MusicPlayer.png = MusicPlayer.png
+		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BaseLib", "..\BaseLib\BaseLib\BaseLib.csproj", "{EFB7D18F-95DD-4F87-9C9A-74E93CA8FBDB}"
@@ -24,7 +27,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StorageLib", "..\StorageLib
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StorageClassGenerator", "..\StorageLib\StorageClassGenerator\StorageClassGenerator.csproj", "{4C4A6116-E24C-4E64-906E-705B89215654}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MusicPlayerAdmin", "MusicPlayerAdmin\MusicPlayerAdmin.csproj", "{F3B2EC6A-9657-4BFB-82AE-5EA01BD2B3EF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MusicPlayerAdmin", "MusicPlayerAdmin\MusicPlayerAdmin.csproj", "{F3B2EC6A-9657-4BFB-82AE-5EA01BD2B3EF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
