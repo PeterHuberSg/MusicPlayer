@@ -91,7 +91,9 @@ namespace MusicPlayer {
 
 
     private Playinglist? setPlayinglistForTrackPlayer() {
-      Playlist playlist = (Playlist)PlaylistsDataGrid.SelectedItem;
+      Playlist? playlist = (Playlist)PlaylistsDataGrid.SelectedItem;
+      if (playlist is null) return null;
+
       trackPlayerPlayinglist = null; 
       if (!DC.Data.Playinglists.TryGetValue(playlist, out trackPlayerPlayinglist)) {
         trackPlayerPlayinglist = new Playinglist(playlist);
@@ -221,7 +223,28 @@ namespace MusicPlayer {
     #region Eventhandlers
     //      -------------
 
+    Setup setup;
+
+
     private void mainWindow_Loaded(object sender, RoutedEventArgs e) {
+      try {
+        setup = new Setup();
+        if (setup.IsFirstTimeRunning || string.IsNullOrEmpty(setup.CsvFilePath)) {
+          SetupWindow.ShowDialog(this, setup);
+
+          if (string.IsNullOrEmpty(setup.CsvFilePath)) {
+            MessageBox.Show("Path to directory where MusicPlayer can store its data is missing in setup.", "Setup Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            Close();
+           
+            return;
+          }
+        }
+      } catch (Exception ex) {
+
+        MessageBox.Show($"Could not access setup data." + Environment.NewLine + ex.Message, "Setup Data Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        Close();
+        return;
+      }
 
       dlInitAsync();
     }
@@ -270,7 +293,9 @@ namespace MusicPlayer {
     private void addMenus() {
       _ = addSubMenu(MainMenu, "_Tracks", () => TracksWindow.Show(this), isEnabled: true, isOneTime: false);
       _ = addSubMenu(MainMenu, "_Import", () => ImportWindow.Show(this), isEnabled: true, isOneTime: true);
-      _ = addSubMenu(MainMenu, "_Test2", () => Test2Window.Show(this), isEnabled: true, isOneTime: false);
+      _ = addSubMenu(MainMenu, "_Setup", () => showSetupWindow(), isEnabled: true, isOneTime: true);
+      _ = addSubMenu(MainMenu, "_Help", () => HelpWindow.Show(this), isEnabled: true, isOneTime: true);
+      //_ = addSubMenu(MainMenu, "_Test2", () => Test2Window.Show(this), isEnabled: true, isOneTime: false);
 
       windowsMenu = addSubMenu(MainMenu, "_Windows");
     }
@@ -314,6 +339,24 @@ namespace MusicPlayer {
         oneTimeMenuItems.Add(window, menuItem);
       }
     }
+
+
+    private Window? showSetupWindow() {
+      var setupWindow = SetupWindow.Show(this, setup, setupWindowCompleted);
+      return setupWindow;
+    }
+
+
+    private void setupWindowCompleted() {
+      if (setup.CsvFilePath!=DC.Data.CsvConfig!.DirectoryPath || setup.BackupFilePath!=DC.Data.CsvConfig.BackupPath) {
+        closeOpenChildWindows();
+        Player.Current?.Stop();
+        selectedPlaylist = null; 
+        trackPlayerPlayinglist = null; 
+        updatePlaylistGridAndTitle();
+        dlInitAsync();
+      }
+    }
     #endregion
 
 
@@ -321,7 +364,7 @@ namespace MusicPlayer {
     //      --------------------
 
     readonly Dictionary<Window, (MenuItem MenuItem, int Number)> windowsSubMenus = new Dictionary<Window, (MenuItem, int)>();
-    readonly Dictionary<Type, BigBitSetAuto> windowsNummern = new Dictionary<Type, BigBitSetAuto>();
+    readonly Dictionary<Type, BigBitSetAuto> windowsNumbers = new Dictionary<Type, BigBitSetAuto>();
 
 
     public static void Register(Window window, string name) {
@@ -331,24 +374,25 @@ namespace MusicPlayer {
 
     private void register(Window childWindow, string name) {
       var windowType = childWindow.GetType();
-      if (!windowsNummern.TryGetValue(windowType, out var windowNummern)) {
-        windowNummern = new BigBitSetAuto();
-        windowsNummern.Add(windowType, windowNummern);
+      if (!windowsNumbers.TryGetValue(windowType, out var windowNumbers)) {
+        windowNumbers = new BigBitSetAuto();
+        windowsNumbers.Add(windowType, windowNumbers);
       }
-      var nextNummer = 0;
-      while (windowNummern[nextNummer]) {
-        nextNummer++;
+      var nextNumber = 0;
+      while (windowNumbers[nextNumber]) {
+        nextNumber++;
       }
-      windowNummern[nextNummer] = true;
-      if (nextNummer!=0) {
-        name = name + " " + nextNummer;
+      windowNumbers[nextNumber] = true;
+      if (nextNumber!=0) {
+        name = name + " " + nextNumber;
       }
       childWindow.Title = name;
 
       var windowsSubMenu = addSubMenu(windowsMenu!, name, () => { childWindow.Activate(); childWindow.WindowState = WindowState.Normal; childWindow.BringIntoView(); return null; });
 
-      windowsSubMenus.Add(childWindow, (windowsSubMenu, nextNummer));
+      windowsSubMenus.Add(childWindow, (windowsSubMenu, nextNumber));
       childWindow.Closed += childWindow_Closed;
+      DcModeComboBox.IsEnabled = false;
     }
 
 
@@ -356,14 +400,21 @@ namespace MusicPlayer {
       var senderWindow = (Window)sender!;
       var menuItemNumber = windowsSubMenus[senderWindow];
       windowsMenu!.Items.Remove(menuItemNumber.MenuItem);
-      DcModeComboBox.IsEnabled = windowsMenu.Items.Count==0;
+      DcModeComboBox.IsEnabled = windowsMenu.Items.Count==0 && setup.CsvTestFilePath is not null;
       var menuNummer = menuItemNumber.Number;
       windowsSubMenus.Remove((Window)sender!);
       var windowType = senderWindow.GetType();
-      windowsNummern[windowType][menuNummer] = false;
+      windowsNumbers[windowType][menuNummer] = false;
       if (oneTimeMenuItems.TryGetValue(senderWindow, out var menuItem)) {
         menuItem.IsEnabled = true;
         oneTimeMenuItems.Remove(senderWindow);
+      }
+    }
+
+
+    private void closeOpenChildWindows() {
+      while (windowsSubMenus.Count>0) {
+        windowsSubMenus.Keys.First().Close();
       }
     }
     #endregion
@@ -405,13 +456,17 @@ namespace MusicPlayer {
       MainMenu.IsEnabled = false;
       IsProductionDC = RealComboBoxItem.IsSelected;
       MainStatusBar.Background = IsProductionDC ? StatusBarBackgroundNormal : StatusBarBackgroundTest;
-      PathTextBox.Text = IsProductionDC ? DC.CsvFilePath + "; " + DC.BackupFilePath : DC.CsvTestFilePath;
+      PathTextBox.Text = IsProductionDC ? setup.CsvFilePath + "; " + setup.BackupFilePath : setup.CsvTestFilePath;
 
       //Progress<string> progress = new Progress<string>(s => EventsTextBox.Text += Environment.NewLine + s);
       await Task.Run(() => dlInit(IsProductionDC, null));
+
       playlistsViewSource.Source = DC.Data.Playlists.Values.OrderBy(pl => pl.Name).ToList();
       MainMenu.IsEnabled = true;
       UpdateTracksStatistics();
+      if (setup.IsFirstTimeRunning) {
+        HelpWindow.Show(this);
+      }
     }
 
 
@@ -426,7 +481,7 @@ namespace MusicPlayer {
     }
 
 
-    private static void dlInit(bool isProduction, IProgress<string>? progress) {
+    private void dlInit(bool isProduction, IProgress<string>? progress) {
       if (DC.Data!=null) {
         progress?.Report("Data dispose");
         DC.Data.Dispose();
@@ -435,15 +490,15 @@ namespace MusicPlayer {
       progress?.Report("Data initialising");
       CsvConfig csvConfig;
       if (isProduction) {
-        csvConfig = new CsvConfig(DC.CsvFilePath, DC.BackupFilePath, backupPeriodicity: 1, backupCopies: 8);
+        csvConfig = new CsvConfig(setup.CsvFilePath!, setup.BackupFilePath, backupPeriodicity: 1, backupCopies: 8);
       } else {
-        foreach (var fileInfo in new DirectoryInfo(DC.CsvTestFilePath).GetFiles()) {
+        foreach (var fileInfo in new DirectoryInfo(setup.CsvTestFilePath!).GetFiles()) {
           fileInfo.Delete();
         }
-        foreach (var fileInfo in new DirectoryInfo(DC.CsvFilePath).GetFiles()) {
-          fileInfo.CopyTo(DC.CsvTestFilePath + "\\" + fileInfo.Name);
+        foreach (var fileInfo in new DirectoryInfo(setup.CsvFilePath!).GetFiles()) {
+          fileInfo.CopyTo(setup.CsvTestFilePath + "\\" + fileInfo.Name);
         }
-        csvConfig = new CsvConfig(DC.CsvTestFilePath);
+        csvConfig = new CsvConfig(setup.CsvTestFilePath!);
       }
       _ = new DC(csvConfig);
       progress?.Report("Data initialised");

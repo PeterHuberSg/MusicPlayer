@@ -1,0 +1,83 @@
+﻿<Window x:Class="MusicPlayer.HelpWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MusicPlayer"
+        mc:Ignorable="d"
+        Title="HelpWindow" Height="450" Width="800">
+  <FlowDocumentReader ViewingMode="Scroll">
+    <FlowDocument Name="MainFlowDocument" FontFamily="Segeo UI" FontSize="14">
+      <FlowDocument.Resources>
+        <Style TargetType="Paragraph">
+          <Setter Property="Margin" Value="7"/>
+        </Style>
+        <Style TargetType="Paragraph" x:Key="Header">
+          <Setter Property="Margin" Value="7, 21, 7, 7"/>
+          <Setter Property="FontSize" Value="16"/>
+          <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+      </FlowDocument.Resources>
+      <Paragraph FontWeight="Bold" FontSize="18" >MusicPlayer Help</Paragraph>
+      <Paragraph>MusicPlayer can play any sound file (=track) Windows supports. Tracks can be combined into
+        Playlists. Their content can be played in sequence or randomly.</Paragraph>
+      <Paragraph>To use MusicPlayer, follow these steps:</Paragraph>
+
+      <Paragraph Style="{StaticResource Header}">1) Setup directory for storing MusicPlayer data</Paragraph>
+      <Paragraph>When MusicPlayer starts for the first time, it asks the user where it can store its data. The
+      user can also enter a directory for backup, if this is required.</Paragraph>
+      <Paragraph>The Setup menu allows changing these values also later on.</Paragraph>
+      
+      <Paragraph Style="{StaticResource Header}">2) Import tracks</Paragraph>
+      <Paragraph>With the Import menu, the user can tell which tracks should get added to the MusicPlayer. 
+        When adding a track, the MusicPlayer simply stores the location of that file in its data store plus 
+        some track properties like title, artist, genre, etc. These properties can be entered with the Windows 
+        Explorer, which is a bit cumbersome, or by rightclicking on a track and executing "Rename". Renaming 
+        will not change the file name, but the properties like title.
+      </Paragraph>
+      <Paragraph>It is often convenient to create immediately a new playlist of these tracks or to add them to an
+      existing playlist. This is done by entering a name into the playlist field.</Paragraph>
+
+      <Paragraph Style="{StaticResource Header}">3) Play tracks</Paragraph>
+      <Paragraph>The Tracks window shows all tracks the MusicPlayer know. The user can sort them by clicking 
+        on a column header or filter them by entering a search string in the filter field or selecting a value 
+        in the artist, genre, etc. dropdown boxes.
+      </Paragraph>
+      <Paragraph>Double clicking on a track starts playing this track. At the bottom of the window are some 
+        buttons for pausing, positioning the track, skipping to the next track or changing the volume. If the
+        user selected several tracks, the MusicPlayer will keep playing only these tracks. If only 1 track is
+        selected, the MusicPlayer will play all tracks in the window.
+      </Paragraph>
+
+      <Paragraph Style="{StaticResource Header}">4) Create Playlists</Paragraph>
+      <Paragraph>The user can mark some tracks in the Import or Tracks Window and add them to a playlist, 
+        which opens the Playlist Window. Here the user can rearrange the sequence of the tracks, remove tracks
+        from the playlist or select some tracks to be added to an existing or new playlist.
+      </Paragraph>
+
+      <Paragraph Style="{StaticResource Header}">5) Managing Playlists</Paragraph>
+      <Paragraph>
+        The MainWindow of MusicPlayer shows all playlists. Double clicking on one opens a new Window for that 
+        playlist.</Paragraph>
+      <Paragraph>To play that playlist, click on it in the MainWindow and then click on the Play button at the bottom of the 
+        Window. MusicPlayer will remember which tracks it has played already, even if it gets stopped and 
+        restarted. Only once it has played all tracks, regardless whether shuffle mode is on (random play) or 
+        off (sequential play), will it repeat playing a track. The right grid in the MainWindow shows the tracks 
+        in the selected playlist which have not been played yet.
+      </Paragraph>
+      <Paragraph Style="{StaticResource Header}">Copy Rights</Paragraph>
+      <Paragraph>
+        Written in 2021  by Jürgpeter Huber, Singapore<LineBreak/>
+        Contact: https://github.com/PeterHuberSg/MusicPlayer
+      </Paragraph>
+      <Paragraph>
+        To the extent possible under law, the author(s) have dedicated all copyright and 
+        related and neighboring rights to this software to the public domain worldwide under
+        the Creative Commons 0 license https://creativecommons.org/publicdomain/zero/1.0/.
+      </Paragraph>
+      <Paragraph>
+        This software is distributed without any warranty.
+      </Paragraph>
+    </FlowDocument>
+  </FlowDocumentReader>
+</Window>

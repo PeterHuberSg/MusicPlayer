@@ -205,6 +205,7 @@ namespace MusicPlayer {
 
     private void mediaPlayer_MediaFailed(object? sender, ExceptionEventArgs e) {
       dispatcherTimer.Stop();
+      PositionChanged?.Invoke(this);
       trace($"MediaFailed: {e.ErrorException.Message}");
       ErrorMessage = e.ErrorException.Message;
       State = PlayerStateEnum.Error;
@@ -237,7 +238,7 @@ namespace MusicPlayer {
       mediaPlayer.Open(new Uri(Track!.FullFileName));
       mediaPlayer.Play();
       State = PlayerStateEnum.Playing;
-      dispatcherTimer.Start();//
+      dispatcherTimer.Start();
     }
 
 
@@ -306,8 +307,13 @@ namespace MusicPlayer {
         setVolume(volume, hasChanged: false);
 
       } else {
-        //playinglist and track are null
-        throw new Exception();
+        //playinglist and track are null, nothing to do
+        //can come here when MainWindow is empty but user plays play button anyway
+        Track = null;
+        mediaPlayer.Stop();
+        dispatcherTimer.Stop();
+        PositionChanged?.Invoke(this);
+        State = PlayerStateEnum.Idle;
       }
 
       //CanSkipTrack = true;
@@ -322,7 +328,7 @@ namespace MusicPlayer {
       //  } else {
       //    playtrack();
       //  }
-        
+
       //} else {
       //  //continue playing track which was interupted before due to change of ownerPlayerControl
       //  trace($"Continue playing playlist: {playinglist!.Playlist?.Name}, track: {track.Title}, position: {position}, isShuffle: {isShuffle}");
@@ -419,6 +425,16 @@ namespace MusicPlayer {
         mediaPlayer.Close();
         State = PlayerStateEnum.Idle;
       }
+    }
+
+
+    public void Stop() {
+      OwnerPlayerControl = null;
+      Playinglist = null;
+      CanSkipTrack = false;
+      trace("mediaPlayer.Stop()");
+      mediaPlayer.Close();
+      State = PlayerStateEnum.Idle;
     }
 
 
