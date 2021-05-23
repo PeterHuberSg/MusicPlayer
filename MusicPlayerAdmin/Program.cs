@@ -10,14 +10,19 @@ namespace MusicPlayerAdmin {
       Console.WriteLine("Music Player Adming");
       Console.WriteLine("===================");
 
-      var oldGenre = "Hard Rock";
-      var newGenre = "Rock";
-      var csvConfig = new CsvConfig(DC.CsvFilePath, DC.BackupFilePath, backupPeriodicity: 1, backupCopies: 8);
+      var oldGenre = "R&B";
+      var newGenre = "Pop";
+      var setup = new Setup();
+      var csvConfig = new CsvConfig(setup.CsvFilePath!, setup.BackupFilePath, backupPeriodicity: 1, backupCopies: 8);
       using (var dc = new DC(csvConfig)) {
-        var tracksQuery = 
+        var tracksQuery =
           from track in dc.Tracks.Values
           where track.Genres==oldGenre
           select track;
+        //var tracksQuery =
+        //  from track in dc.Tracks.Values
+        //  where track.Artists?.StartsWith("Prince")??false
+        //  select track;
 
         foreach (var track in tracksQuery) {
           Console.WriteLine($"{track.Title} | {track.Artists} | {track.Genres} | {track.Year} ");
@@ -25,6 +30,7 @@ namespace MusicPlayerAdmin {
 
         Console.WriteLine();
         Console.WriteLine($"Press 'y' to rename \"{oldGenre}\" to \"{newGenre}\".");
+        //Console.WriteLine($"Press 'y' to make all Genres = 'Pop'.");
         if (Console.ReadKey(true).Key==ConsoleKey.Y) {
           var count = 0;
           foreach (var track in tracksQuery) {
@@ -33,7 +39,7 @@ namespace MusicPlayerAdmin {
               fileInfo.IsReadOnly = false;
             }
             var fileProperties = TagLib.File.Create(fileInfo.FullName);
-            fileProperties.Tag.Genres = new string[]{newGenre};
+            fileProperties.Tag.Genres = new string[] { newGenre };
             fileProperties.Save();
 
             track.Update(

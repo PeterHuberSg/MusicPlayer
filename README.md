@@ -43,31 +43,22 @@ replacement for a database with the advantages:
 + all data stored in RAM, resulting in extremly fast data access using LINQ.
 
 
-## Configuration
+## Getting Started
 
-I am working to improve how you can configure the lcoations where the .CSV files 
-get stored. In the meantime, you have to enter this information in the file 
-MusicPlayerCore\DC.cs, lines 16 - 21:
+1) Get https://github.com/PeterHuberSg/StorageLib. This is the library used
+to store data on the local hard disk.
 
-    public const string CsvFilePath = @"C:\Users\Peter\OneDrive\OneDriveData\MusicPlayer";
-    public const string BackupFilePath = @"E:\MusicPlayerBackup";
+2) Get the code of https://github.com/PeterHuberSg/MusicPlayer. Its parent directory 
+should be the same as the parent directory of StorageLib.
 
-    //test
-    public const string CsvTestFilePath = @"E:\MusicPlayerCsvTest";
-    public const string? BackupTestFilePath = null;
+3) Install the nuget packages:  
+Ookii.Dialogs.Wpf  
+TagLibSharp
 
-**CsvFilePath:** where the actual data gets stored. I keep it in a OneDrive directory to 
-get an immediate online backup.
+To run the application start MainWindow in the MusicPlayer project. Once Musicplayer starts, 
+it will ask you in which directory it should store its data, then it shows a help screen 
+explaining the next steps.
 
-**BackupFilePath:** When MusicPlayer stops, it copies all .CSV files to this path.
-
-For testing:
-
-**CsvTestFilePath:** When switching to test mode, all .Csv files get copied to this path 
-and all Musicplayer operations use these files.
-
-**BackupTestFilePath:** Since the test data gets copied over from the real data each 
-time testing starts, usually no testing backup directory is needed.
 
 ## VS Solution MusicPlayer Project Structure
 
