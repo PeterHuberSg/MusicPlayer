@@ -73,7 +73,7 @@ namespace MusicPlayer  {
       Key = StorageExtensions.NoKey;
       PlaylistTrackKey = playlistTrackKey;
       onConstruct();
-      if (DC.Data.IsTransaction) {
+      if (DC.Data?.IsTransaction??false) {
         DC.Data.AddTransaction(new TransactionItem(4,TransactionActivityEnum.New, Key, this));
       }
 
@@ -100,7 +100,7 @@ namespace MusicPlayer  {
     /// <summary>
     /// Constructor for PlayinglistTrack read from CSV file
     /// </summary>
-    private PlayinglistTrack(int key, CsvReader csvReader){
+    private PlayinglistTrack(int key, CsvReader csvReader, DataStoreCSV<PlayinglistTrack> dataStore){
       Key = key;
       PlaylistTrackKey = csvReader.ReadInt();
       DC.Data._PlayinglistTracksByPlaylistTrackKey.Add(PlaylistTrackKey, this);
@@ -112,8 +112,8 @@ namespace MusicPlayer  {
     /// <summary>
     /// New PlayinglistTrack read from CSV file
     /// </summary>
-    internal static PlayinglistTrack Create(int key, CsvReader csvReader) {
-      return new PlayinglistTrack(key, csvReader);
+    internal static PlayinglistTrack Create(int key, CsvReader csvReader, DataStoreCSV<PlayinglistTrack> dataStore) {
+      return new PlayinglistTrack(key, csvReader, dataStore);
     }
     #endregion
 
@@ -123,20 +123,22 @@ namespace MusicPlayer  {
 
     /// <summary>
     /// Adds PlayinglistTrack to DC.Data.PlayinglistTracks.<br/>
-    /// Throws an Exception when PlayinglistTrack is already stored.
+    /// Throws an Exception when PlayinglistTrack is already stored.<br/>
+    /// Returns true unless onStoring() cancels storing.
     /// </summary>
-    public void Store() {
+    public bool Store() {
       if (Key>=0) {
         throw new Exception($"PlayinglistTrack cannot be stored again in DC.Data, key {Key} is greater equal 0." + Environment.NewLine + ToString());
       }
 
       var isCancelled = false;
       onStoring(ref isCancelled);
-      if (isCancelled) return;
+      if (isCancelled) return false;
 
       DC.Data._PlayinglistTracksByPlaylistTrackKey.Add(PlaylistTrackKey, this);
       DC.Data._PlayinglistTracks.Add(this);
       onStored();
+      return true;
     }
     partial void onStoring(ref bool isCancelled);
     partial void onStored();
@@ -159,13 +161,14 @@ namespace MusicPlayer  {
 
 
     /// <summary>
-    /// Updates PlayinglistTrack with the provided values
+    /// Updates PlayinglistTrack with the provided values.<br/>
+    /// Returns true unless onUpdating() cancels updating.
     /// </summary>
-    public void Update(int playlistTrackKey) {
+    public bool Update(int playlistTrackKey) {
       var clone = new PlayinglistTrack(this);
       var isCancelled = false;
       onUpdating(playlistTrackKey, ref isCancelled);
-      if (isCancelled) return;
+      if (isCancelled) return false;
 
 
       //update properties and detect if any value has changed
@@ -176,7 +179,7 @@ namespace MusicPlayer  {
         }
         PlaylistTrackKey = playlistTrackKey;
         if (Key>=0) {
-            DC.Data._PlayinglistTracksByPlaylistTrackKey.Add(PlaylistTrackKey, this);
+         DC.Data._PlayinglistTracksByPlaylistTrackKey.Add(PlaylistTrackKey, this);
         }
         isChangeDetected = true;
       }
@@ -189,6 +192,7 @@ namespace MusicPlayer  {
         }
         HasChanged?.Invoke(clone, this);
       }
+    return true;
     }
     partial void onUpdating(int playlistTrackKey, ref bool isCancelled);
     partial void onUpdated(PlayinglistTrack old);
@@ -197,10 +201,16 @@ namespace MusicPlayer  {
     /// <summary>
     /// Updates this PlayinglistTrack with values from CSV file
     /// </summary>
-    internal static void Update(PlayinglistTrack playinglistTrack, CsvReader csvReader){
-      DC.Data._PlayinglistTracksByPlaylistTrackKey.Remove(playinglistTrack.PlaylistTrackKey);
-      playinglistTrack.PlaylistTrackKey = csvReader.ReadInt();
-      DC.Data._PlayinglistTracksByPlaylistTrackKey.Add(playinglistTrack.PlaylistTrackKey, playinglistTrack);
+    internal static void Update(PlayinglistTrack playinglistTrack, CsvReader csvReader, DataStoreCSV<PlayinglistTrack> dataStore){
+      //read first all property values into local variables
+      var playlistTrackKey = csvReader.ReadInt();
+
+      //update not readonly properties
+      if (playinglistTrack.PlaylistTrackKey!=playlistTrackKey) {
+        DC.Data._PlayinglistTracksByPlaylistTrackKey.Remove(playinglistTrack.PlaylistTrackKey);
+        playinglistTrack.PlaylistTrackKey = playlistTrackKey;
+        DC.Data._PlayinglistTracksByPlaylistTrackKey.Add(playinglistTrack.PlaylistTrackKey, playinglistTrack);
+      }
       playinglistTrack.onCsvUpdate();
     }
     partial void onCsvUpdate();
@@ -220,6 +230,16 @@ namespace MusicPlayer  {
     }
     partial void onReleasing();
     partial void onReleased();
+
+
+    /// <summary>
+    /// Disconnects PlayinglistTrack from parents and possibly from dictionaries in DC.Data.
+    /// </summary>
+    internal static void Disconnect(PlayinglistTrack playinglistTrack){
+      DC.Data._PlayinglistTracksByPlaylistTrackKey.Remove(playinglistTrack.PlaylistTrackKey);
+      playinglistTrack.onDisconnected();
+    }
+    partial void onDisconnected();
 
 
     /// <summary>

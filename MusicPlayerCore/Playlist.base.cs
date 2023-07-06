@@ -79,7 +79,7 @@ namespace MusicPlayer  {
       NameLower = Name.ToLowerInvariant();
       playlistTracks = new StorageList<PlaylistTrack>();
       onConstruct();
-      if (DC.Data.IsTransaction) {
+      if (DC.Data?.IsTransaction??false) {
         DC.Data.AddTransaction(new TransactionItem(2,TransactionActivityEnum.New, Key, this));
       }
 
@@ -107,7 +107,7 @@ namespace MusicPlayer  {
     /// <summary>
     /// Constructor for Playlist read from CSV file
     /// </summary>
-    private Playlist(int key, CsvReader csvReader){
+    private Playlist(int key, CsvReader csvReader, DataStoreCSV<Playlist> dataStore){
       Key = key;
       Name = csvReader.ReadString();
       NameLower = Name.ToLowerInvariant();
@@ -121,8 +121,8 @@ namespace MusicPlayer  {
     /// <summary>
     /// New Playlist read from CSV file
     /// </summary>
-    internal static Playlist Create(int key, CsvReader csvReader) {
-      return new Playlist(key, csvReader);
+    internal static Playlist Create(int key, CsvReader csvReader, DataStoreCSV<Playlist> dataStore) {
+      return new Playlist(key, csvReader, dataStore);
     }
     #endregion
 
@@ -132,20 +132,22 @@ namespace MusicPlayer  {
 
     /// <summary>
     /// Adds Playlist to DC.Data.Playlists.<br/>
-    /// Throws an Exception when Playlist is already stored.
+    /// Throws an Exception when Playlist is already stored.<br/>
+    /// Returns true unless onStoring() cancels storing.
     /// </summary>
-    public void Store() {
+    public bool Store() {
       if (Key>=0) {
         throw new Exception($"Playlist cannot be stored again in DC.Data, key {Key} is greater equal 0." + Environment.NewLine + ToString());
       }
 
       var isCancelled = false;
       onStoring(ref isCancelled);
-      if (isCancelled) return;
+      if (isCancelled) return false;
 
       DC.Data._PlaylistsByNameLower.Add(NameLower, this);
       DC.Data._Playlists.Add(this);
       onStored();
+      return true;
     }
     partial void onStoring(ref bool isCancelled);
     partial void onStored();
@@ -168,13 +170,14 @@ namespace MusicPlayer  {
 
 
     /// <summary>
-    /// Updates Playlist with the provided values
+    /// Updates Playlist with the provided values.<br/>
+    /// Returns true unless onUpdating() cancels updating.
     /// </summary>
-    public void Update(string name) {
+    public bool Update(string name) {
       var clone = new Playlist(this);
       var isCancelled = false;
       onUpdating(name, ref isCancelled);
-      if (isCancelled) return;
+      if (isCancelled) return false;
 
 
       //update properties and detect if any value has changed
@@ -186,7 +189,7 @@ namespace MusicPlayer  {
         Name = name;
         NameLower = Name.ToLowerInvariant();
         if (Key>=0) {
-            DC.Data._PlaylistsByNameLower.Add(NameLower, this);
+         DC.Data._PlaylistsByNameLower.Add(NameLower, this);
         }
         isChangeDetected = true;
       }
@@ -199,6 +202,7 @@ namespace MusicPlayer  {
         }
         HasChanged?.Invoke(clone, this);
       }
+    return true;
     }
     partial void onUpdating(string name, ref bool isCancelled);
     partial void onUpdated(Playlist old);
@@ -207,11 +211,18 @@ namespace MusicPlayer  {
     /// <summary>
     /// Updates this Playlist with values from CSV file
     /// </summary>
-    internal static void Update(Playlist playlist, CsvReader csvReader){
-      DC.Data._PlaylistsByNameLower.Remove(playlist.NameLower);
-      playlist.Name = csvReader.ReadString();
-      playlist.NameLower = playlist.Name.ToLowerInvariant();
-      DC.Data._PlaylistsByNameLower.Add(playlist.NameLower, playlist);
+    internal static void Update(Playlist playlist, CsvReader csvReader, DataStoreCSV<Playlist> dataStore){
+      //read first all property values into local variables
+      var name = csvReader.ReadString();
+
+
+      //update not readonly properties
+      if (playlist.Name!=name) {
+        DC.Data._PlaylistsByNameLower.Remove(playlist.NameLower);
+        playlist.Name = name;
+        playlist.NameLower = playlist.Name.ToLowerInvariant();
+        DC.Data._PlaylistsByNameLower.Add(playlist.NameLower, playlist);
+      }
       playlist.onCsvUpdate();
     }
     partial void onCsvUpdate();
@@ -269,6 +280,16 @@ namespace MusicPlayer  {
 
 
     /// <summary>
+    /// Disconnects Playlist from parents and possibly from dictionaries in DC.Data.
+    /// </summary>
+    internal static void Disconnect(Playlist playlist){
+      DC.Data._PlaylistsByNameLower.Remove(playlist.NameLower);
+      playlist.onDisconnected();
+    }
+    partial void onDisconnected();
+
+
+    /// <summary>
     /// Undoes the new() statement as part of a transaction rollback.
     /// </summary>
     internal static void RollbackItemNew(IStorageItem item) {
@@ -283,7 +304,6 @@ namespace MusicPlayer  {
     /// </summary>
     internal static void RollbackItemStore(IStorageItem item) {
       var playlist = (Playlist) item;
-      DC.Data._PlaylistsByNameLower.Remove(playlist.NameLower);
       DC.Data._PlaylistsByNameLower.Remove(playlist.NameLower);
       playlist.onRollbackItemStored();
     }

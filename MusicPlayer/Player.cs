@@ -384,7 +384,7 @@ namespace MusicPlayer {
     {
       if (OwnerPlayerControl==playerControl && State!=PlayerStateEnum.Paused) return;
 
-      trace($"End pause for playinglist: {playinglist!.Playlist?.Name}, track: {track!.Title}, position: {position}, isShuffle: {isShuffle}");
+      trace($"End pause for playinglist: {playinglist?.Playlist?.Name}, track: {track?.Title}, position: {position}, isShuffle: {isShuffle}");
       OwnerPlayerControl = playerControl;
       Playinglist = playinglist;
       var isSameTrack = Track==track;

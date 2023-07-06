@@ -201,7 +201,7 @@ namespace MusicPlayer  {
       playlistTracks = new StorageList<PlaylistTrack>();
       Location.AddToTracks(this);
       onConstruct();
-      if (DC.Data.IsTransaction) {
+      if (DC.Data?.IsTransaction??false) {
         DC.Data.AddTransaction(new TransactionItem(1,TransactionActivityEnum.New, Key, this));
       }
 
@@ -249,7 +249,7 @@ namespace MusicPlayer  {
     /// <summary>
     /// Constructor for Track read from CSV file
     /// </summary>
-    private Track(int key, CsvReader csvReader){
+    private Track(int key, CsvReader csvReader, DataStoreCSV<Track> dataStore){
       Key = key;
       FileName = csvReader.ReadString();
       FullFileName = csvReader.ReadString();
@@ -287,8 +287,8 @@ namespace MusicPlayer  {
     /// <summary>
     /// New Track read from CSV file
     /// </summary>
-    internal static Track Create(int key, CsvReader csvReader) {
-      return new Track(key, csvReader);
+    internal static Track Create(int key, CsvReader csvReader, DataStoreCSV<Track> dataStore) {
+      return new Track(key, csvReader, dataStore);
     }
 
 
@@ -307,16 +307,17 @@ namespace MusicPlayer  {
 
     /// <summary>
     /// Adds Track to DC.Data.Tracks.<br/>
-    /// Throws an Exception when Track is already stored.
+    /// Throws an Exception when Track is already stored.<br/>
+    /// Returns true unless onStoring() cancels storing.
     /// </summary>
-    public void Store() {
+    public bool Store() {
       if (Key>=0) {
         throw new Exception($"Track cannot be stored again in DC.Data, key {Key} is greater equal 0." + Environment.NewLine + ToString());
       }
 
       var isCancelled = false;
       onStoring(ref isCancelled);
-      if (isCancelled) return;
+      if (isCancelled) return false;
 
       if (Location.Key<0) {
         throw new Exception($"Cannot store child Track '{this}'.Location to Location '{Location}' because parent is not stored yet.");
@@ -324,6 +325,7 @@ namespace MusicPlayer  {
       DC.Data._TracksByTitleArtists.Add(TitleArtists, this);
       DC.Data._Tracks.Add(this);
       onStored();
+      return true;
     }
     partial void onStoring(ref bool isCancelled);
     partial void onStored();
@@ -364,9 +366,10 @@ namespace MusicPlayer  {
 
 
     /// <summary>
-    /// Updates Track with the provided values
+    /// Updates Track with the provided values.<br/>
+    /// Returns true unless onUpdating() cancels updating.
     /// </summary>
-    public void Update(
+    public bool Update(
       string? title, 
       string? album, 
       int? albumTrack, 
@@ -398,7 +401,7 @@ namespace MusicPlayer  {
         skipEnd, 
         titleArtists, 
         ref isCancelled);
-      if (isCancelled) return;
+      if (isCancelled) return false;
 
 
       //update properties and detect if any value has changed
@@ -462,7 +465,7 @@ namespace MusicPlayer  {
         }
         TitleArtists = titleArtists;
         if (Key>=0) {
-            DC.Data._TracksByTitleArtists.Add(TitleArtists, this);
+         DC.Data._TracksByTitleArtists.Add(TitleArtists, this);
         }
         isChangeDetected = true;
       }
@@ -475,6 +478,7 @@ namespace MusicPlayer  {
         }
         HasChanged?.Invoke(clone, this);
       }
+    return true;
     }
     partial void onUpdating(
       string? title, 
@@ -497,52 +501,81 @@ namespace MusicPlayer  {
     /// <summary>
     /// Updates this Track with values from CSV file
     /// </summary>
-    internal static void Update(Track track, CsvReader csvReader){
+    internal static void Update(Track track, CsvReader csvReader, DataStoreCSV<Track> dataStore){
+      //read first all property values into local variables
       var fileName = csvReader.ReadString();
       if (track.FileName!=fileName) {
         throw new Exception($"Track.Update(): Property FileName '{track.FileName}' is " +
           $"readonly, fileName '{fileName}' read from the CSV file should be the same." + Environment.NewLine + 
           track.ToString());
       }
+
       var fullFileName = csvReader.ReadString();
       if (track.FullFileName!=fullFileName) {
         throw new Exception($"Track.Update(): Property FullFileName '{track.FullFileName}' is " +
           $"readonly, fullFileName '{fullFileName}' read from the CSV file should be the same." + Environment.NewLine + 
           track.ToString());
       }
-        var location = DC.Data._Locations.GetItem(csvReader.ReadInt())??
-          Location.NoLocation;
+
+      var location = DC.Data._Locations.GetItem(csvReader.ReadInt())??Location.NoLocation;
       if (track.Location!=location) {
         throw new Exception($"Track.Update(): Property Location '{track.Location}' is " +
           $"readonly, location '{location}' read from the CSV file should be the same." + Environment.NewLine + 
           track.ToString());
       }
-      track.Title = csvReader.ReadStringNull();
-      track.TitleLowerCase = track.Title?.ToLowerInvariant();
+
+      var title = csvReader.ReadStringNull();
+
       var duration = csvReader.ReadTimeNull();
       if (track.Duration!=duration) {
         throw new Exception($"Track.Update(): Property Duration '{track.Duration}' is " +
           $"readonly, duration '{duration}' read from the CSV file should be the same." + Environment.NewLine + 
           track.ToString());
       }
-      track.Album = csvReader.ReadStringNull();
-      track.AlbumLowerCase = track.Album?.ToLowerInvariant();
-      track.AlbumTrack = csvReader.ReadIntNull();
-      track.Artists = csvReader.ReadStringNull();
-      track.ArtistsLowerCase = track.Artists?.ToLowerInvariant();
-      track.Composers = csvReader.ReadStringNull();
-      track.ComposersLowerCase = track.Composers?.ToLowerInvariant();
-      track.Publisher = csvReader.ReadStringNull();
-      track.PublisherLowerCase = track.Publisher?.ToLowerInvariant();
-      track.Year = csvReader.ReadIntNull();
-      track.Genres = csvReader.ReadStringNull();
-      track.Weight = csvReader.ReadIntNull();
-      track.Volume = csvReader.ReadIntNull();
-      track.SkipStart = csvReader.ReadIntNull();
-      track.SkipEnd = csvReader.ReadIntNull();
-      DC.Data._TracksByTitleArtists.Remove(track.TitleArtists);
-      track.TitleArtists = csvReader.ReadString();
-      DC.Data._TracksByTitleArtists.Add(track.TitleArtists, track);
+
+      var album = csvReader.ReadStringNull();
+
+      var albumTrack = csvReader.ReadIntNull();
+
+      var artists = csvReader.ReadStringNull();
+
+      var composers = csvReader.ReadStringNull();
+
+      var publisher = csvReader.ReadStringNull();
+
+      var year = csvReader.ReadIntNull();
+
+      var genres = csvReader.ReadStringNull();
+
+      var weight = csvReader.ReadIntNull();
+
+      var volume = csvReader.ReadIntNull();
+
+      var skipStart = csvReader.ReadIntNull();
+
+      var skipEnd = csvReader.ReadIntNull();
+
+      var titleArtists = csvReader.ReadString();
+
+
+      //update not readonly properties
+      track.Title = title;
+      track.Album = album;
+      track.AlbumTrack = albumTrack;
+      track.Artists = artists;
+      track.Composers = composers;
+      track.Publisher = publisher;
+      track.Year = year;
+      track.Genres = genres;
+      track.Weight = weight;
+      track.Volume = volume;
+      track.SkipStart = skipStart;
+      track.SkipEnd = skipEnd;
+      if (track.TitleArtists!=titleArtists) {
+        DC.Data._TracksByTitleArtists.Remove(track.TitleArtists);
+        track.TitleArtists = titleArtists;
+        DC.Data._TracksByTitleArtists.Add(track.TitleArtists, track);
+      }
       track.onCsvUpdate();
     }
     partial void onCsvUpdate();
@@ -597,6 +630,19 @@ namespace MusicPlayer  {
     }
     partial void onReleasing();
     partial void onReleased();
+
+
+    /// <summary>
+    /// Disconnects Track from parents and possibly from dictionaries in DC.Data.
+    /// </summary>
+    internal static void Disconnect(Track track){
+      if (track.Location!=Location.NoLocation) {
+        track.Location.RemoveFromTracks(track);
+      }
+      DC.Data._TracksByTitleArtists.Remove(track.TitleArtists);
+      track.onDisconnected();
+    }
+    partial void onDisconnected();
 
 
     /// <summary>

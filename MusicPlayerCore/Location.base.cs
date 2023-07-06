@@ -86,7 +86,7 @@ namespace MusicPlayer  {
       Name = name;
       tracks = new StorageList<Track>();
       onConstruct();
-      if (DC.Data.IsTransaction) {
+      if (DC.Data?.IsTransaction??false) {
         DC.Data.AddTransaction(new TransactionItem(0,TransactionActivityEnum.New, Key, this));
       }
 
@@ -115,7 +115,7 @@ namespace MusicPlayer  {
     /// <summary>
     /// Constructor for Location read from CSV file
     /// </summary>
-    private Location(int key, CsvReader csvReader){
+    private Location(int key, CsvReader csvReader, DataStoreCSV<Location> dataStore){
       Key = key;
       Path = csvReader.ReadString();
       PathLower = Path.ToLowerInvariant();
@@ -130,8 +130,8 @@ namespace MusicPlayer  {
     /// <summary>
     /// New Location read from CSV file
     /// </summary>
-    internal static Location Create(int key, CsvReader csvReader) {
-      return new Location(key, csvReader);
+    internal static Location Create(int key, CsvReader csvReader, DataStoreCSV<Location> dataStore) {
+      return new Location(key, csvReader, dataStore);
     }
     #endregion
 
@@ -141,20 +141,22 @@ namespace MusicPlayer  {
 
     /// <summary>
     /// Adds Location to DC.Data.Locations.<br/>
-    /// Throws an Exception when Location is already stored.
+    /// Throws an Exception when Location is already stored.<br/>
+    /// Returns true unless onStoring() cancels storing.
     /// </summary>
-    public void Store() {
+    public bool Store() {
       if (Key>=0) {
         throw new Exception($"Location cannot be stored again in DC.Data, key {Key} is greater equal 0." + Environment.NewLine + ToString());
       }
 
       var isCancelled = false;
       onStoring(ref isCancelled);
-      if (isCancelled) return;
+      if (isCancelled) return false;
 
       DC.Data._LocationsByPathLower.Add(PathLower, this);
       DC.Data._Locations.Add(this);
       onStored();
+      return true;
     }
     partial void onStoring(ref bool isCancelled);
     partial void onStored();
@@ -178,13 +180,14 @@ namespace MusicPlayer  {
 
 
     /// <summary>
-    /// Updates Location with the provided values
+    /// Updates Location with the provided values.<br/>
+    /// Returns true unless onUpdating() cancels updating.
     /// </summary>
-    public void Update(string path, string name) {
+    public bool Update(string path, string name) {
       var clone = new Location(this);
       var isCancelled = false;
       onUpdating(path, name, ref isCancelled);
-      if (isCancelled) return;
+      if (isCancelled) return false;
 
 
       //update properties and detect if any value has changed
@@ -196,7 +199,7 @@ namespace MusicPlayer  {
         Path = path;
         PathLower = Path.ToLowerInvariant();
         if (Key>=0) {
-            DC.Data._LocationsByPathLower.Add(PathLower, this);
+         DC.Data._LocationsByPathLower.Add(PathLower, this);
         }
         isChangeDetected = true;
       }
@@ -213,6 +216,7 @@ namespace MusicPlayer  {
         }
         HasChanged?.Invoke(clone, this);
       }
+    return true;
     }
     partial void onUpdating(string path, string name, ref bool isCancelled);
     partial void onUpdated(Location old);
@@ -221,12 +225,21 @@ namespace MusicPlayer  {
     /// <summary>
     /// Updates this Location with values from CSV file
     /// </summary>
-    internal static void Update(Location location, CsvReader csvReader){
-      DC.Data._LocationsByPathLower.Remove(location.PathLower);
-      location.Path = csvReader.ReadString();
-      location.PathLower = location.Path.ToLowerInvariant();
-      DC.Data._LocationsByPathLower.Add(location.PathLower, location);
-      location.Name = csvReader.ReadString();
+    internal static void Update(Location location, CsvReader csvReader, DataStoreCSV<Location> dataStore){
+      //read first all property values into local variables
+      var path = csvReader.ReadString();
+
+      var name = csvReader.ReadString();
+
+
+      //update not readonly properties
+      if (location.Path!=path) {
+        DC.Data._LocationsByPathLower.Remove(location.PathLower);
+        location.Path = path;
+        location.PathLower = location.Path.ToLowerInvariant();
+        DC.Data._LocationsByPathLower.Add(location.PathLower, location);
+      }
+      location.Name = name;
       location.onCsvUpdate();
     }
     partial void onCsvUpdate();
@@ -284,6 +297,16 @@ namespace MusicPlayer  {
 
 
     /// <summary>
+    /// Disconnects Location from parents and possibly from dictionaries in DC.Data.
+    /// </summary>
+    internal static void Disconnect(Location location){
+      DC.Data._LocationsByPathLower.Remove(location.PathLower);
+      location.onDisconnected();
+    }
+    partial void onDisconnected();
+
+
+    /// <summary>
     /// Undoes the new() statement as part of a transaction rollback.
     /// </summary>
     internal static void RollbackItemNew(IStorageItem item) {
@@ -298,7 +321,6 @@ namespace MusicPlayer  {
     /// </summary>
     internal static void RollbackItemStore(IStorageItem item) {
       var location = (Location) item;
-      DC.Data._LocationsByPathLower.Remove(location.PathLower);
       DC.Data._LocationsByPathLower.Remove(location.PathLower);
       location.onRollbackItemStored();
     }
